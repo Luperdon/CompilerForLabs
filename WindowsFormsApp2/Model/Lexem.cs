@@ -13,7 +13,7 @@ namespace WindowsFormsApp2.Model
         public string lexemContaintment { get; set; }
         public int lexemStartPosition { get; set; }
         public int lexemEndPosition { get; set; }
-        public int lexemLine { get; set; } // Новая переменная для хранения номера строки
+        public int lexemLine { get; set; }
         public LexemType lexemType { get; private set; }
         public string lexemName { get; private set; }
 
@@ -62,7 +62,7 @@ namespace WindowsFormsApp2.Model
             lexemContaintment = containtment;
             lexemStartPosition = startPosition;
             lexemEndPosition = endPosition;
-            lexemLine = line; // Сохраняем номер строки
+            lexemLine = line; 
         }
 
         private void SetLexemTypeAndName(int value)

@@ -134,13 +134,11 @@ namespace WindowsFormsApp2
         {
             textBoxResults.ReadOnly = true;
             textBoxResults.BackColor = Color.FromArgb(240, 240, 240);
-            textBoxResults.Font = new Font("Consolas", 10); // Моноширинный шрифт для лучшего форматирования
-            textBoxResults.WordWrap = false; // Отключаем перенос для сохранения форматирования таблицы
+            textBoxResults.Font = new Font("Consolas", 12);
+            textBoxResults.WordWrap = false;
 
-            // Добавляем обработчик двойного щелчка
             textBoxResults.DoubleClick += TextBoxResults_DoubleClick;
 
-            // Добавляем контекстное меню для результатов
             ContextMenuStrip resultsMenu = new ContextMenuStrip();
             ToolStripMenuItem copyItem = new ToolStripMenuItem("Копировать");
             copyItem.Click += (s, e) => CopyResultsToClipboard();
@@ -157,22 +155,18 @@ namespace WindowsFormsApp2
         {
             if (_lastAnalysisResult == null) return;
 
-            // Получаем позицию курсора в textBoxResults
             int cursorPos = textBoxResults.SelectionStart;
             string text = textBoxResults.Text;
 
-            // Ищем строку, на которой произошел двойной щелчок
             int lineStart = text.LastIndexOf('\n', cursorPos - 1) + 1;
             int lineEnd = text.IndexOf('\n', cursorPos);
             if (lineEnd == -1) lineEnd = text.Length;
 
             string line = text.Substring(lineStart, lineEnd - lineStart);
 
-            // Проверяем, содержит ли строка информацию об ошибке
             if (line.Contains("ОШИБКА"))
             {
-                // Парсим номер строки и позиции из текста
-                // Формат: "ОШИБКА: ... в стр.X (Y-Z)"
+                
                 int lineNumStart = line.LastIndexOf("стр.") + 4;
                 int lineNumEnd = line.IndexOf(' ', lineNumStart);
                 if (int.TryParse(line.Substring(lineNumStart, lineNumEnd - lineNumStart), out int errorLine))
@@ -184,7 +178,6 @@ namespace WindowsFormsApp2
                     if (int.TryParse(line.Substring(posStart, posEnd - posStart), out int startPos) &&
                         int.TryParse(line.Substring(posEnd + 1, posEnd2 - posEnd - 1), out int endPos))
                     {
-                        // Переходим к ошибке
                         NavigateToErrorPosition(startPos, endPos);
                     }
                 }
@@ -227,16 +220,13 @@ namespace WindowsFormsApp2
         {
             try
             {
-                // Очистка предыдущих результатов
                 textBoxResults.Clear();
                 _lastLexems = null;
 
-                // Снимаем подсветку ошибок
                 textBoxEditor.SelectAll();
                 textBoxEditor.SelectionBackColor = Color.White;
                 textBoxEditor.Select(0, 0);
 
-                // Получение текста для анализа
                 string code = textBoxEditor.Text;
 
                 if (string.IsNullOrWhiteSpace(code))
@@ -245,11 +235,9 @@ namespace WindowsFormsApp2
                     return;
                 }
 
-                // ШАГ 1: Лексический анализ
                 _lexer = new Lexer(code);
                 _lastLexems = _lexer.Scan();
 
-                // ШАГ 2: Синтаксический анализ (если нет критических ошибок в лексере)
                 bool syntaxValid = false;
                 if (_lastLexems.Any(l => l.lexemType == Lexem.LexemType.Error))
                 {
@@ -260,14 +248,11 @@ namespace WindowsFormsApp2
                     _parser = new Parser(_lastLexems);
                     syntaxValid = _parser.Parse();
 
-                    // Отображение результатов
                     DisplayFullResults(_lastLexems, syntaxValid, _parser);
                 }
 
-                // Подсветка ошибок
                 HighlightErrorsFromLexems(_lastLexems);
 
-                // Показываем всплывающее уведомление
                 ShowAnalysisResultMessage(_lastLexems, syntaxValid);
             }
             catch (Exception ex)
@@ -454,7 +439,6 @@ namespace WindowsFormsApp2
 
             if (currentLine == line)
             {
-                // column - 1 потому что позиции в тексте начинаются с 0
                 return position + column - 1;
             }
 
@@ -469,7 +453,6 @@ namespace WindowsFormsApp2
                 btnRun.Click += (s, e) => RunAnalysis();
             }
 
-            // Также добавим обработчик для пункта меню, если он есть
             ToolStripMenuItem runMenuItem = this.GetMenuItem("runToolStripMenuItem");
             if (runMenuItem != null)
             {

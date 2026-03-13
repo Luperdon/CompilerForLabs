@@ -10,14 +10,14 @@ namespace WindowsFormsApp2.Model
     {
         private string text;
         private int position;
-        private int currentLine; // Новая переменная для отслеживания текущей строки
+        private int currentLine;
         private List<Lexem> lexemsList;
 
         public Lexer(string textToScan)
         {
             text = textToScan ?? "";
             position = 0;
-            currentLine = 1; // Начинаем с первой строки
+            currentLine = 1;
             lexemsList = new List<Lexem>();
         }
 
@@ -27,7 +27,6 @@ namespace WindowsFormsApp2.Model
             {
                 char currentChar = text[position];
 
-                // Проверка на перевод строки
                 if (currentChar == '\n')
                 {
                     currentLine++;
@@ -35,7 +34,6 @@ namespace WindowsFormsApp2.Model
                     continue;
                 }
 
-                // Пропускаем пробелы и табуляцию, но не переводы строк
                 if (currentChar == ' ' || currentChar == '\t' || currentChar == '\r')
                 {
                     position++;
@@ -61,7 +59,7 @@ namespace WindowsFormsApp2.Model
         private void ProcessIdentifier()
         {
             int start = position;
-            int line = currentLine; // Запоминаем текущую строку
+            int line = currentLine;
 
             while (position < text.Length && (char.IsLetterOrDigit(text[position]) || text[position] == '_'))
             {
@@ -83,7 +81,7 @@ namespace WindowsFormsApp2.Model
         private void ProcessNumber()
         {
             int start = position;
-            int line = currentLine; // Запоминаем текущую строку
+            int line = currentLine; 
             bool hasDot = false;
             bool hasExp = false;
             bool valid = true;
@@ -160,7 +158,7 @@ namespace WindowsFormsApp2.Model
         private bool ProcessSymbol()
         {
             int start = position;
-            int line = currentLine; // Запоминаем текущую строку
+            int line = currentLine;
             char currentChar = text[position++];
             int code;
 
@@ -202,7 +200,7 @@ namespace WindowsFormsApp2.Model
         private void ProcessString()
         {
             int start = position - 1;
-            int line = currentLine; // Запоминаем текущую строку
+            int line = currentLine;
 
             lexemsList.Add(new Lexem(5, "\"", start, position, line));
 
@@ -210,7 +208,6 @@ namespace WindowsFormsApp2.Model
             {
                 char currentChar = text[position];
 
-                // Проверка на перевод строки внутри строки
                 if (currentChar == '\n')
                 {
                     currentLine++;
