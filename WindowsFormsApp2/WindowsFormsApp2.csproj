@@ -46,15 +46,20 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CompilerForm.cs">
+    <Compile Include="Model\Analyzer.cs" />
+    <Compile Include="Model\Lexem.cs" />
+    <Compile Include="Model\Lexer.cs" />
+    <Compile Include="Model\Parser.cs" />
+    <Compile Include="View\Forms\CompilerForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="CompilerForm.Designer.cs">
+    <Compile Include="View\Forms\CompilerForm.Designer.cs">
       <DependentUpon>CompilerForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="CompilerForm.resx">
+    <Compile Include="View\Interface\IMain.cs" />
+    <EmbeddedResource Include="View\Forms\CompilerForm.resx">
       <DependentUpon>CompilerForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
@@ -65,6 +70,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -80,8 +86,11 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="AboutProgram.html" />
-    <Content Include="UserHelp.html" />
+    <None Include="Resources\IconMain.ico" />
+    <Content Include="View\Info\AboutProgram.html" />
+    <None Include="View\Info\cpu_icon_212120.ico" />
+    <Content Include="View\Info\UserHelp.html" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

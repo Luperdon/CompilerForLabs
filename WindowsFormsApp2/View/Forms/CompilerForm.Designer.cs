@@ -52,7 +52,7 @@
             this.вставитьToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.удалитьToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.выделитьВсеToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.пускToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.runToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.справкаToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.вызовСправкиToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.оПрограммеToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -69,6 +69,9 @@
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+            this.runButton = new System.Windows.Forms.PictureBox();
+            this.infoButton = new System.Windows.Forms.PictureBox();
+            this.questionButton = new System.Windows.Forms.PictureBox();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.file)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.folder)).BeginInit();
@@ -80,6 +83,9 @@
             ((System.ComponentModel.ISupportInitialize)(this.insert)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.runButton)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.infoButton)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.questionButton)).BeginInit();
             this.SuspendLayout();
             // 
             // menuStrip1
@@ -90,7 +96,7 @@
             this.файлToolStripMenuItem,
             this.текстToolStripMenuItem,
             this.правкаToolStripMenuItem,
-            this.пускToolStripMenuItem,
+            this.runToolStripMenuItem,
             this.справкаToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
@@ -256,12 +262,12 @@
             this.выделитьВсеToolStripMenuItem.Size = new System.Drawing.Size(223, 28);
             this.выделитьВсеToolStripMenuItem.Text = "Выделить все";
             // 
-            // пускToolStripMenuItem
+            // runToolStripMenuItem
             // 
-            this.пускToolStripMenuItem.Font = new System.Drawing.Font("Elephant", 10.8F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.пускToolStripMenuItem.Name = "пускToolStripMenuItem";
-            this.пускToolStripMenuItem.Size = new System.Drawing.Size(68, 28);
-            this.пускToolStripMenuItem.Text = "Пуск";
+            this.runToolStripMenuItem.Font = new System.Drawing.Font("Elephant", 10.8F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.runToolStripMenuItem.Name = "runToolStripMenuItem";
+            this.runToolStripMenuItem.Size = new System.Drawing.Size(68, 28);
+            this.runToolStripMenuItem.Text = "Пуск";
             // 
             // справкаToolStripMenuItem
             // 
@@ -379,6 +385,7 @@
             // textBoxEditor
             // 
             this.textBoxEditor.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
+            this.textBoxEditor.Font = new System.Drawing.Font("Microsoft Sans Serif", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.textBoxEditor.Location = new System.Drawing.Point(12, 94);
             this.textBoxEditor.Name = "textBoxEditor";
             this.textBoxEditor.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
@@ -388,8 +395,8 @@
             // 
             // textBoxResults
             // 
-            this.textBoxResults.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.textBoxResults.BackColor = System.Drawing.Color.Silver;
+            this.textBoxResults.Font = new System.Drawing.Font("Microsoft Sans Serif", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.textBoxResults.Location = new System.Drawing.Point(12, 313);
             this.textBoxResults.Name = "textBoxResults";
             this.textBoxResults.ReadOnly = true;
@@ -407,9 +414,46 @@
             this.splitContainer1.Location = new System.Drawing.Point(14, 94);
             this.splitContainer1.Name = "splitContainer1";
             this.splitContainer1.Orientation = System.Windows.Forms.Orientation.Horizontal;
+            // 
+            // splitContainer1.Panel2
+            // 
+            this.splitContainer1.Panel2.Font = new System.Drawing.Font("Microsoft Sans Serif", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.splitContainer1.Size = new System.Drawing.Size(820, 404);
-            this.splitContainer1.SplitterDistance = 201;
+            this.splitContainer1.SplitterDistance = 200;
             this.splitContainer1.TabIndex = 13;
+            // 
+            // runButton
+            // 
+            this.runButton.Image = ((System.Drawing.Image)(resources.GetObject("runButton.Image")));
+            this.runButton.Location = new System.Drawing.Point(451, 48);
+            this.runButton.Name = "runButton";
+            this.runButton.Size = new System.Drawing.Size(40, 40);
+            this.runButton.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.runButton.TabIndex = 14;
+            this.runButton.TabStop = false;
+            this.runButton.Click += new System.EventHandler(this.runButton_Click);
+            // 
+            // infoButton
+            // 
+            this.infoButton.Image = ((System.Drawing.Image)(resources.GetObject("infoButton.Image")));
+            this.infoButton.Location = new System.Drawing.Point(543, 48);
+            this.infoButton.Name = "infoButton";
+            this.infoButton.Size = new System.Drawing.Size(40, 40);
+            this.infoButton.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.infoButton.TabIndex = 15;
+            this.infoButton.TabStop = false;
+            this.infoButton.Click += new System.EventHandler(this.infoButton_Click);
+            // 
+            // questionButton
+            // 
+            this.questionButton.Image = ((System.Drawing.Image)(resources.GetObject("questionButton.Image")));
+            this.questionButton.Location = new System.Drawing.Point(497, 48);
+            this.questionButton.Name = "questionButton";
+            this.questionButton.Size = new System.Drawing.Size(40, 40);
+            this.questionButton.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.questionButton.TabIndex = 16;
+            this.questionButton.TabStop = false;
+            this.questionButton.Click += new System.EventHandler(this.questionButton_Click);
             // 
             // CompilerForm
             // 
@@ -417,6 +461,9 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.ButtonHighlight;
             this.ClientSize = new System.Drawing.Size(846, 498);
+            this.Controls.Add(this.questionButton);
+            this.Controls.Add(this.infoButton);
+            this.Controls.Add(this.runButton);
             this.Controls.Add(this.insert);
             this.Controls.Add(this.scissors);
             this.Controls.Add(this.copy);
@@ -446,6 +493,9 @@
             ((System.ComponentModel.ISupportInitialize)(this.insert)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
             this.splitContainer1.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.runButton)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.infoButton)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.questionButton)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -457,7 +507,7 @@
         private System.Windows.Forms.ToolStripMenuItem файлToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem текстToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem правкаToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem пускToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem runToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem справкаToolStripMenuItem;
         private System.Windows.Forms.PictureBox file;
         private System.Windows.Forms.PictureBox folder;
@@ -493,6 +543,9 @@
         private System.Windows.Forms.OpenFileDialog openFileDialog1;
         private System.Windows.Forms.SaveFileDialog saveFileDialog1;
         private System.Windows.Forms.SplitContainer splitContainer1;
+        private System.Windows.Forms.PictureBox runButton;
+        private System.Windows.Forms.PictureBox infoButton;
+        private System.Windows.Forms.PictureBox questionButton;
     }
 }
 
