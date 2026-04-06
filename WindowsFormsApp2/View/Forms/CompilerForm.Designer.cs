@@ -65,7 +65,6 @@
             this.scissors = new System.Windows.Forms.PictureBox();
             this.insert = new System.Windows.Forms.PictureBox();
             this.textBoxEditor = new System.Windows.Forms.RichTextBox();
-            this.textBoxResults = new System.Windows.Forms.RichTextBox();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
@@ -295,9 +294,10 @@
             // 
             // file
             // 
+            this.file.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.file.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.file.Image = ((System.Drawing.Image)(resources.GetObject("file.Image")));
-            this.file.Location = new System.Drawing.Point(14, 48);
+            this.file.Location = new System.Drawing.Point(282, 48);
             this.file.Name = "file";
             this.file.Size = new System.Drawing.Size(40, 40);
             this.file.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -307,8 +307,9 @@
             // 
             // folder
             // 
+            this.folder.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.folder.Image = ((System.Drawing.Image)(resources.GetObject("folder.Image")));
-            this.folder.Location = new System.Drawing.Point(60, 48);
+            this.folder.Location = new System.Drawing.Point(328, 48);
             this.folder.Name = "folder";
             this.folder.Size = new System.Drawing.Size(40, 40);
             this.folder.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -318,8 +319,9 @@
             // 
             // save
             // 
+            this.save.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.save.Image = ((System.Drawing.Image)(resources.GetObject("save.Image")));
-            this.save.Location = new System.Drawing.Point(106, 48);
+            this.save.Location = new System.Drawing.Point(374, 48);
             this.save.Name = "save";
             this.save.Size = new System.Drawing.Size(40, 40);
             this.save.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -329,8 +331,9 @@
             // 
             // left
             // 
+            this.left.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.left.Image = ((System.Drawing.Image)(resources.GetObject("left.Image")));
-            this.left.Location = new System.Drawing.Point(185, 48);
+            this.left.Location = new System.Drawing.Point(445, 48);
             this.left.Name = "left";
             this.left.Size = new System.Drawing.Size(40, 40);
             this.left.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -340,8 +343,9 @@
             // 
             // right
             // 
+            this.right.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.right.Image = ((System.Drawing.Image)(resources.GetObject("right.Image")));
-            this.right.Location = new System.Drawing.Point(231, 48);
+            this.right.Location = new System.Drawing.Point(491, 48);
             this.right.Name = "right";
             this.right.Size = new System.Drawing.Size(40, 40);
             this.right.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -351,8 +355,9 @@
             // 
             // copy
             // 
+            this.copy.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.copy.Image = ((System.Drawing.Image)(resources.GetObject("copy.Image")));
-            this.copy.Location = new System.Drawing.Point(313, 48);
+            this.copy.Location = new System.Drawing.Point(562, 48);
             this.copy.Name = "copy";
             this.copy.Size = new System.Drawing.Size(40, 40);
             this.copy.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -362,8 +367,9 @@
             // 
             // scissors
             // 
+            this.scissors.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.scissors.Image = ((System.Drawing.Image)(resources.GetObject("scissors.Image")));
-            this.scissors.Location = new System.Drawing.Point(359, 48);
+            this.scissors.Location = new System.Drawing.Point(608, 48);
             this.scissors.Name = "scissors";
             this.scissors.Size = new System.Drawing.Size(40, 40);
             this.scissors.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -373,8 +379,9 @@
             // 
             // insert
             // 
+            this.insert.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.insert.Image = ((System.Drawing.Image)(resources.GetObject("insert.Image")));
-            this.insert.Location = new System.Drawing.Point(405, 48);
+            this.insert.Location = new System.Drawing.Point(654, 48);
             this.insert.Name = "insert";
             this.insert.Size = new System.Drawing.Size(40, 40);
             this.insert.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -392,18 +399,6 @@
             this.textBoxEditor.Size = new System.Drawing.Size(822, 204);
             this.textBoxEditor.TabIndex = 11;
             this.textBoxEditor.Text = "";
-            // 
-            // textBoxResults
-            // 
-            this.textBoxResults.BackColor = System.Drawing.Color.Silver;
-            this.textBoxResults.Font = new System.Drawing.Font("Microsoft Sans Serif", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.textBoxResults.Location = new System.Drawing.Point(12, 313);
-            this.textBoxResults.Name = "textBoxResults";
-            this.textBoxResults.ReadOnly = true;
-            this.textBoxResults.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
-            this.textBoxResults.Size = new System.Drawing.Size(822, 185);
-            this.textBoxResults.TabIndex = 12;
-            this.textBoxResults.Text = "";
             // 
             // openFileDialog1
             // 
@@ -424,8 +419,9 @@
             // 
             // runButton
             // 
+            this.runButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.runButton.Image = ((System.Drawing.Image)(resources.GetObject("runButton.Image")));
-            this.runButton.Location = new System.Drawing.Point(451, 48);
+            this.runButton.Location = new System.Drawing.Point(700, 48);
             this.runButton.Name = "runButton";
             this.runButton.Size = new System.Drawing.Size(40, 40);
             this.runButton.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -435,8 +431,9 @@
             // 
             // infoButton
             // 
+            this.infoButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.infoButton.Image = ((System.Drawing.Image)(resources.GetObject("infoButton.Image")));
-            this.infoButton.Location = new System.Drawing.Point(543, 48);
+            this.infoButton.Location = new System.Drawing.Point(792, 48);
             this.infoButton.Name = "infoButton";
             this.infoButton.Size = new System.Drawing.Size(40, 40);
             this.infoButton.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -446,8 +443,9 @@
             // 
             // questionButton
             // 
+            this.questionButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.questionButton.Image = ((System.Drawing.Image)(resources.GetObject("questionButton.Image")));
-            this.questionButton.Location = new System.Drawing.Point(497, 48);
+            this.questionButton.Location = new System.Drawing.Point(746, 48);
             this.questionButton.Name = "questionButton";
             this.questionButton.Size = new System.Drawing.Size(40, 40);
             this.questionButton.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -472,10 +470,9 @@
             this.Controls.Add(this.save);
             this.Controls.Add(this.folder);
             this.Controls.Add(this.file);
-            this.Controls.Add(this.splitContainer1);
-            this.Controls.Add(this.textBoxResults);
             this.Controls.Add(this.textBoxEditor);
             this.Controls.Add(this.menuStrip1);
+            this.Controls.Add(this.splitContainer1);
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "CompilerForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
@@ -539,7 +536,6 @@
         private System.Windows.Forms.ToolStripMenuItem вызовСправкиToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem оПрограммеToolStripMenuItem;
         private System.Windows.Forms.RichTextBox textBoxEditor;
-        private System.Windows.Forms.RichTextBox textBoxResults;
         private System.Windows.Forms.OpenFileDialog openFileDialog1;
         private System.Windows.Forms.SaveFileDialog saveFileDialog1;
         private System.Windows.Forms.SplitContainer splitContainer1;

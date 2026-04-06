@@ -1,15 +1,9 @@
-﻿using System.Windows.Forms;
-using System.Drawing;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
+using System.Drawing;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using static WindowsFormsApp2.LexicalAnalyzer;
-using System.Resources;
-using WindowsFormsApp2.Model;
+using System.Windows.Forms;
 
 namespace WindowsFormsApp2
 {
@@ -24,23 +18,21 @@ namespace WindowsFormsApp2
         private bool isTextModified = false;
         private string lastSavedText = "";
 
-        //private LexicalAnalyzer _analyzer = new LexicalAnalyzer();
-        private AnalysisResult _lastAnalysisResult;
-
-        private Lexer _lexer;
-        private Parser _parser;
-        private List<Lexem> _lastLexems;
+        // Модуль поиска
+        private LexicalAnalyzer _analyzer = new LexicalAnalyzer();
+        private List<SearchMatch> _lastSearchResults = new List<SearchMatch>();
+        private ComboBox cmbSearchType;
+        private Button btnSearch;
+        private Label lblCount;
+        private DataGridView dgvResults;
+        private Label lblDescription;
 
         public CompilerForm()
         {
             InitializeComponent();
-
-            previousText = textBoxEditor.Text;
-            undoStack.Push(previousText);
-
+            InitializeSearchInterface();
             InitializeEditMenu();
             InitializeFileMenu();
-            InitializeResultsTextBox();
             InitializeRunButton();
 
             UpdateWindowTitle();
@@ -49,156 +41,244 @@ namespace WindowsFormsApp2
             this.Icon = Properties.Resources.cpu_icon_212120;
         }
 
-        private void DisplayAnalysisResults(AnalysisResult result)
+        private void InitializeSearchInterface()
         {
-            _lastAnalysisResult = result;
+            // Создаем панель для элементов управления поиском
+            Panel searchPanel = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 80,
+                BackColor = Color.FromArgb(240, 240, 240),
+                Padding = new Padding(10, 8, 10, 8)
+            };
 
-            textBoxResults.Clear();
+            Label lblSearchType = new Label
+            {
+                Text = "Тип поиска:",
+                Location = new Point(10, 15),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9, FontStyle.Regular)
+            };
 
+            cmbSearchType = new ComboBox
+            {
+                Location = new Point(85, 12),
+                Width = 200,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = new Font("Segoe UI", 9)
+            };
+
+            // Заполняем выпадающий список типами поиска
+            cmbSearchType.Items.AddRange(new string[]
+            {
+                "ОГРН юридического лица",
+                "Имя пользователя",
+                "Комплексные числа"
+            });
+            cmbSearchType.SelectedIndex = 0;
+            cmbSearchType.SelectedIndexChanged += CmbSearchType_SelectedIndexChanged;
+
+            // Описание формата
+            lblDescription = new Label
+            {
+                Location = new Point(85, 40),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 8, FontStyle.Italic),
+                ForeColor = Color.Gray
+            };
+            UpdateDescription();
+
+            btnSearch = new Button
+            {
+                Text = "Найти",
+                Location = new Point(300, 10),
+                Width = 100,
+                Height = 35,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                BackColor = Color.LightBlue
+            };
+            btnSearch.Click += BtnSearch_Click;
+
+            lblCount = new Label
+            {
+                Text = "Найдено: 0",
+                Location = new Point(410, 18),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                ForeColor = Color.DarkBlue
+            };
+
+            searchPanel.Controls.AddRange(new Control[] { lblSearchType, cmbSearchType, lblDescription, btnSearch, lblCount });
+            this.Controls.Add(searchPanel);
+
+            // Таблица результатов
+            dgvResults = new DataGridView
+            {
+                Dock = DockStyle.Bottom,
+                Height = 220,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                BackgroundColor = Color.White,
+                BorderStyle = BorderStyle.Fixed3D,
+                RowHeadersVisible = false,
+                Font = new Font("Consolas", 10)
+            };
+
+            dgvResults.Columns.Add("Substring", "Найденная подстрока");
+            dgvResults.Columns.Add("Line", "Строка");
+            dgvResults.Columns.Add("Position", "Позиция");
+            dgvResults.Columns.Add("Length", "Длина");
+
+            dgvResults.Columns["Substring"].Width = 400;
+            dgvResults.Columns["Line"].Width = 80;
+            dgvResults.Columns["Position"].Width = 80;
+            dgvResults.Columns["Length"].Width = 70;
+
+            dgvResults.SelectionChanged += DgvResults_SelectionChanged;
+
+            this.Controls.Add(dgvResults);
+
+            // Сдвигаем splitContainer вниз
+            if (splitContainer1 != null)
+            {
+                splitContainer1.Top = 80;
+                splitContainer1.Height = this.ClientSize.Height - 300;
+            }
+        }
+
+        private void CmbSearchType_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            UpdateDescription();
+            // Очищаем предыдущие результаты при смене типа поиска
+            dgvResults.Rows.Clear();
+            _lastSearchResults.Clear();
+            lblCount.Text = "Найдено: 0";
+        }
+
+        private void UpdateDescription()
+        {
+            var pattern = GetSelectedSearchPattern();
+            lblDescription.Text = LexicalAnalyzer.GetPatternDescription(pattern);
+        }
+
+        private void BtnSearch_Click(object sender, EventArgs e)
+        {
+            PerformSearch();
+        }
+
+        private void PerformSearch()
+        {
+            string text = textBoxEditor.Text;
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                MessageBox.Show("Введите текст для поиска.", "Информация",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            try
+            {
+                var searchType = GetSelectedSearchPattern();
+
+                _lastSearchResults = _analyzer.FindMatches(text, searchType);
+
+                dgvResults.Rows.Clear();
+
+                foreach (var match in _lastSearchResults)
+                {
+                    dgvResults.Rows.Add(match.Value, match.Line, match.Column, match.Length);
+                }
+
+                lblCount.Text = $"Найдено: {_lastSearchResults.Count}";
+
+                DisplaySearchResults(searchType);
+
+                if (_lastSearchResults.Count == 0)
+                {
+                    MessageBox.Show("Совпадений не найдено.", "Результат поиска",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при поиске: {ex.Message}", "Ошибка",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void DisplaySearchResults(LexicalAnalyzer.SearchPattern searchType)
+        {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"РЕЗУЛЬТАТЫ ЛЕКСИЧЕСКОГО АНАЛИЗА - {DateTime.Now:HH:mm:ss}");
+            sb.AppendLine($"РЕЗУЛЬТАТЫ ПОИСКА: {LexicalAnalyzer.GetPatternName(searchType)} - {DateTime.Now:HH:mm:ss}");
+            sb.AppendLine($"Формат: {LexicalAnalyzer.GetPatternDescription(searchType)}");
             sb.AppendLine("==========================================================");
             sb.AppendLine();
+            sb.AppendLine($"{"ПОДСТРОКА",-35} {"СТРОКА",-8} {"ПОЗИЦИЯ",-8} {"ДЛИНА",-6}");
+            sb.AppendLine(new string('-', 70));
 
-            sb.AppendLine($"{"КОД",-6} {"ТИП ЛЕКСЕМЫ",-20} {"ЛЕКСЕМА",-25} {"ПОЗИЦИЯ"}");
-            sb.AppendLine(new string('=', 80));
-
-            int currentLine = 0;
-            foreach (var token in result.Tokens)
+            foreach (var match in _lastSearchResults)
             {
-                if (token.Line != currentLine)
-                {
-                    currentLine = token.Line;
-                    sb.AppendLine($"--- Строка {currentLine} ---");
-                }
-
-                if (token.IsError)
-                {
-                    sb.AppendLine($"  {token.GetFormattedString()}");
-                }
-                else
-                {
-                    sb.AppendLine($"  {token.GetFormattedString()}");
-                }
+                string substring = match.Value.Length > 33 ? match.Value.Substring(0, 30) + "..." : match.Value;
+                sb.AppendLine($"{substring,-35} {match.Line,-8} {match.Column,-8} {match.Length,-6}");
             }
 
-            sb.AppendLine(new string('=', 80));
-            int totalTokens = result.Tokens.Count(t => !t.IsError);
-            int totalErrors = result.Tokens.Count(t => t.IsError);
+            sb.AppendLine(new string('=', 70));
+            sb.AppendLine($"ВСЕГО НАЙДЕНО: {_lastSearchResults.Count}");
 
-            sb.AppendLine($"ИТОГО:");
-            sb.AppendLine($"  ✓ Лексем: {totalTokens}");
-            sb.AppendLine($"  ✗ Ошибок: {totalErrors}");
-            sb.AppendLine($"  ∑ Всего элементов: {result.Tokens.Count}");
-
-            if (result.HasErrors)
+            if (_lastSearchResults.Count > 0)
             {
                 sb.AppendLine();
-                sb.AppendLine("🔍 Дважды щелкните на строке с ошибкой для перехода к ней.");
-                sb.AppendLine("📋 Используйте контекстное меню для копирования результатов.");
+                sb.AppendLine("🔍 Для подсветки подстроки выберите строку в таблице выше.");
             }
 
-            textBoxResults.Text = sb.ToString();
-
-            // Подсветка ошибок в редакторе
-            HighlightErrors(result);
-
         }
 
-        private void HighlightErrors(AnalysisResult result)
+        private LexicalAnalyzer.SearchPattern GetSelectedSearchPattern()
         {
-            int currentSelectionStart = textBoxEditor.SelectionStart;
-            int currentSelectionLength = textBoxEditor.SelectionLength;
-
-            textBoxEditor.SelectAll();
-            textBoxEditor.SelectionBackColor = Color.White;
-
-            // Подсвечиваем ошибки
-            foreach (var error in result.Errors)
+            switch (cmbSearchType.SelectedIndex)
             {
-                int startPos = GetPositionFromLineAndColumn(error.Line, error.StartPosition);
-                int length = error.EndPosition - error.StartPosition;
-
-                if (startPos >= 0 && length > 0)
-                {
-                    textBoxEditor.Select(startPos, length);
-                    textBoxEditor.SelectionBackColor = Color.LightCoral;
-                }
+                case 0: return LexicalAnalyzer.SearchPattern.OGRN;
+                case 1: return LexicalAnalyzer.SearchPattern.Username;
+                case 2: return LexicalAnalyzer.SearchPattern.ComplexNumber;
+                default: return LexicalAnalyzer.SearchPattern.OGRN;
             }
-
-            textBoxEditor.Select(currentSelectionStart, currentSelectionLength);
-            textBoxEditor.SelectionBackColor = Color.White; 
         }
 
-        private void InitializeResultsTextBox()
+        private void DgvResults_SelectionChanged(object sender, EventArgs e)
         {
-            textBoxResults.ReadOnly = true;
-            textBoxResults.BackColor = Color.FromArgb(240, 240, 240);
-            textBoxResults.Font = new Font("Consolas", 12);
-            textBoxResults.WordWrap = false;
-
-            textBoxResults.DoubleClick += TextBoxResults_DoubleClick;
-
-            ContextMenuStrip resultsMenu = new ContextMenuStrip();
-            ToolStripMenuItem copyItem = new ToolStripMenuItem("Копировать");
-            copyItem.Click += (s, e) => CopyResultsToClipboard();
-            resultsMenu.Items.Add(copyItem);
-
-            ToolStripMenuItem clearItem = new ToolStripMenuItem("Очистить");
-            clearItem.Click += (s, e) => textBoxResults.Clear();
-            resultsMenu.Items.Add(clearItem);
-
-            textBoxResults.ContextMenuStrip = resultsMenu;
-        }
-
-        private void TextBoxResults_DoubleClick(object sender, EventArgs e)
-        {
-            if (_lastAnalysisResult == null) return;
-
-            int cursorPos = textBoxResults.SelectionStart;
-            string text = textBoxResults.Text;
-
-            int lineStart = text.LastIndexOf('\n', cursorPos - 1) + 1;
-            int lineEnd = text.IndexOf('\n', cursorPos);
-            if (lineEnd == -1) lineEnd = text.Length;
-
-            string line = text.Substring(lineStart, lineEnd - lineStart);
-
-            if (line.Contains("ОШИБКА"))
+            if (dgvResults.SelectedRows.Count > 0 && _lastSearchResults.Count > 0)
             {
-                
-                int lineNumStart = line.LastIndexOf("стр.") + 4;
-                int lineNumEnd = line.IndexOf(' ', lineNumStart);
-                if (int.TryParse(line.Substring(lineNumStart, lineNumEnd - lineNumStart), out int errorLine))
+                int index = dgvResults.SelectedRows[0].Index;
+                if (index < _lastSearchResults.Count)
                 {
-                    int posStart = line.IndexOf('(') + 1;
-                    int posEnd = line.IndexOf('-');
-                    int posEnd2 = line.IndexOf(')');
-
-                    if (int.TryParse(line.Substring(posStart, posEnd - posStart), out int startPos) &&
-                        int.TryParse(line.Substring(posEnd + 1, posEnd2 - posEnd - 1), out int endPos))
-                    {
-                        NavigateToErrorPosition(startPos, endPos);
-                    }
+                    HighlightSubstring(_lastSearchResults[index]);
                 }
             }
         }
 
-        private void NavigateToErrorPosition(int startPos, int endPos)
+        private void HighlightSubstring(SearchMatch match)
         {
-            if (startPos >= 0 && startPos < textBoxEditor.TextLength)
+            int currentStart = textBoxEditor.SelectionStart;
+            int currentLength = textBoxEditor.SelectionLength;
+            Color currentBackColor = textBoxEditor.SelectionBackColor;
+
+            ClearHighlighting();
+
+            if (match.StartIndex >= 0 && match.StartIndex + match.Length <= textBoxEditor.TextLength)
             {
                 textBoxEditor.Focus();
-                textBoxEditor.Select(startPos, Math.Min(endPos - startPos, textBoxEditor.TextLength - startPos));
+                textBoxEditor.Select(match.StartIndex, match.Length);
+                textBoxEditor.SelectionBackColor = Color.Yellow;
                 textBoxEditor.ScrollToCaret();
 
-                textBoxEditor.SelectionBackColor = Color.Yellow;
-
-                System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
-                timer.Interval = 2000;
-                timer.Tick += (s, e) =>
+                Timer timer = new Timer();
+                timer.Interval = 3000;
+                timer.Tick += (s, args) =>
                 {
-                    textBoxEditor.SelectionBackColor = Color.White;
+                    textBoxEditor.Select(currentStart, currentLength);
+                    textBoxEditor.SelectionBackColor = currentBackColor;
                     timer.Stop();
                     timer.Dispose();
                 };
@@ -206,243 +286,20 @@ namespace WindowsFormsApp2
             }
         }
 
-        private void CopyResultsToClipboard()
+        private void ClearHighlighting()
         {
-            if (!string.IsNullOrEmpty(textBoxResults.Text))
-            {
-                Clipboard.SetText(textBoxResults.Text);
-                MessageBox.Show("Результаты скопированы в буфер обмена",
-                    "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-        }
+            // Сохраняем текущее выделение
+            int start = textBoxEditor.SelectionStart;
+            int length = textBoxEditor.SelectionLength;
+            Color backColor = textBoxEditor.SelectionBackColor;
 
-        private void RunAnalysis()
-        {
-            try
-            {
-                textBoxResults.Clear();
-                _lastLexems = null;
-
-                textBoxEditor.SelectAll();
-                textBoxEditor.SelectionBackColor = Color.White;
-                textBoxEditor.Select(0, 0);
-
-                string code = textBoxEditor.Text;
-
-                if (string.IsNullOrWhiteSpace(code))
-                {
-                    textBoxResults.Text = "Введите текст для анализа.";
-                    return;
-                }
-
-                _lexer = new Lexer(code);
-                _lastLexems = _lexer.Scan();
-
-                bool syntaxValid = false;
-                if (_lastLexems.Any(l => l.lexemType == Lexem.LexemType.Error))
-                {
-                    DisplayLexemsOnly(_lastLexems);
-                }
-                else
-                {
-                    _parser = new Parser(_lastLexems);
-                    syntaxValid = _parser.Parse();
-
-                    DisplayFullResults(_lastLexems, syntaxValid, _parser);
-                }
-
-                HighlightErrorsFromLexems(_lastLexems);
-
-                ShowAnalysisResultMessage(_lastLexems, syntaxValid);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при анализе: {ex.Message}",
-                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void DisplayLexemsOnly(List<Lexem> lexems)
-        {
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"РЕЗУЛЬТАТЫ ЛЕКСИЧЕСКОГО АНАЛИЗА - {DateTime.Now:HH:mm:ss}");
-            sb.AppendLine("==========================================================");
-            sb.AppendLine();
-            sb.AppendLine($"{"КОД",-6} {"ТИП ЛЕКСЕМЫ",-20} {"ЛЕКСЕМА",-25} {"ПОЗИЦИЯ"}");
-            sb.AppendLine(new string('=', 80));
-
-            int errorCount = 0;
-            int lineNumber = 1;
-
-            foreach (var lexem in lexems)
-            {
-                if (lexem.lexemType == Lexem.LexemType.Error)
-                {
-                    errorCount++;
-                    sb.AppendLine($"  {lexem.GetFormattedString()}");
-                }
-                else
-                {
-                    sb.AppendLine($"  {lexem.GetFormattedString()}");
-                }
-            }
-
-            sb.AppendLine(new string('=', 80));
-            sb.AppendLine($"ИТОГО:");
-            sb.AppendLine($"  ✓ Лексем: {lexems.Count(l => l.lexemType != Lexem.LexemType.Error)}");
-            sb.AppendLine($"  ✗ Ошибок лексического анализа: {errorCount}");
-
-            textBoxResults.Text = sb.ToString();
-        }
-
-        private void DisplayFullResults(List<Lexem> lexems, bool syntaxValid, Parser parser)
-        {
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"РЕЗУЛЬТАТЫ АНАЛИЗА - {DateTime.Now:HH:mm:ss}");
-            sb.AppendLine("==========================================================");
-            sb.AppendLine();
-            sb.AppendLine($"{"СТР",-4} {"КОД",-6} {"ТИП ЛЕКСЕМЫ",-20} {"ЛЕКСЕМА",-25} {"ПОЗИЦИЯ"}");
-            sb.AppendLine(new string('-', 80));
-
-            int currentLine = 0;
-            foreach (var lexem in lexems)
-            {
-                if (lexem.lexemLine != currentLine)
-                {
-                    if (currentLine > 0)
-                        sb.AppendLine(new string('-', 40));
-                    currentLine = lexem.lexemLine;
-                }
-
-                string typeCode = lexem.lexemCode.ToString().PadRight(6);
-                string typeDesc = (lexem.lexemName?.Length > 18) ? lexem.lexemName.Substring(0, 15) + "..." : (lexem.lexemName ?? "Unknown");
-                typeDesc = typeDesc.PadRight(20);
-
-                string value = (lexem.lexemContaintment?.Length > 23) ? lexem.lexemContaintment.Substring(0, 20) + "..." : (lexem.lexemContaintment ?? "");
-                value = value.PadRight(25);
-
-                string location = $"({lexem.lexemStartPosition}-{lexem.lexemEndPosition})";
-
-                string lineNum = lexem.lexemLine.ToString().PadRight(4);
-
-                if (lexem.lexemType == Lexem.LexemType.Error)
-                {
-                    sb.AppendLine($"{lineNum} ОШИБКА: {lexem.lexemContaintment} в {location}");
-                }
-                else
-                {
-                    sb.AppendLine($"{lineNum} {typeCode} {typeDesc} {value} {location}");
-                }
-            }
-
-            sb.AppendLine(new string('=', 80));
-            sb.AppendLine("СИНТАКСИЧЕСКИЙ АНАЛИЗ:");
-            sb.AppendLine($"  Результат: {(syntaxValid ? "УСПЕШНО" : "ОШИБКА")}");
-
-            if (!syntaxValid && parser != null)
-            {
-                sb.AppendLine();
-                parser.PrintLog(sb);
-            }
-
-            sb.AppendLine(new string('=', 80));
-
-            int totalLines = lexems.Max(l => l.lexemLine);
-            int totalTokens = lexems.Count(l => l.lexemType != Lexem.LexemType.Error);
-            int totalErrors = lexems.Count(l => l.lexemType == Lexem.LexemType.Error);
-
-            sb.AppendLine($"ИТОГО:");
-            sb.AppendLine($"  📄 Строк: {totalLines}");
-            sb.AppendLine($"  ✓ Лексем: {totalTokens}");
-            sb.AppendLine($"  ✗ Ошибок: {totalErrors}");
-            sb.AppendLine($"  ∑ Всего элементов: {lexems.Count}");
-
-            textBoxResults.Text = sb.ToString();
-        }
-
-        private void HighlightErrorsFromLexems(List<Lexem> lexems)
-        {
-            if (lexems == null) return;
-
-            int currentSelectionStart = textBoxEditor.SelectionStart;
-            int currentSelectionLength = textBoxEditor.SelectionLength;
-
+            // Снимаем всю подсветку
             textBoxEditor.SelectAll();
             textBoxEditor.SelectionBackColor = Color.White;
 
-            foreach (var error in lexems.Where(l => l.lexemType == Lexem.LexemType.Error))
-            {
-                int startPos = error.lexemStartPosition;
-                int length = error.lexemEndPosition - error.lexemStartPosition;
-
-                if (startPos >= 0 && length > 0 && startPos < textBoxEditor.TextLength)
-                {
-                    textBoxEditor.Select(startPos, Math.Min(length, textBoxEditor.TextLength - startPos));
-                    textBoxEditor.SelectionBackColor = Color.LightCoral;
-                }
-            }
-
-            if (currentSelectionStart <= textBoxEditor.TextLength)
-            {
-                textBoxEditor.Select(currentSelectionStart,
-                    Math.Min(currentSelectionLength, textBoxEditor.TextLength - currentSelectionStart));
-            }
-        }
-
-        private void ShowAnalysisResultMessage(List<Lexem> lexems, bool syntaxValid)
-        {
-            int lexicalErrors = lexems.Count(l => l.lexemType == Lexem.LexemType.Error);
-
-            if (lexicalErrors > 0)
-            {
-                MessageBox.Show($"Обнаружены ошибки на этапе лексического анализа.\n" +
-                              $"Всего ошибок: {lexicalErrors}\n\n" +
-                              $"Дважды щелкните на строке с ошибкой в окне результатов,\n" +
-                              $"чтобы перейти к проблемному месту.",
-                    "Результат анализа",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
-            }
-            else if (!syntaxValid)
-            {
-                MessageBox.Show("Лексический анализ выполнен успешно, но обнаружены\n" +
-                              "синтаксические ошибки в структуре кода.",
-                    "Результат анализа",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
-            }
-            else
-            {
-                MessageBox.Show("Анализ выполнен успешно!\n" +
-                              $"Лексем: {lexems.Count}\n" +
-                              "Синтаксических ошибок не обнаружено.",
-                    "Результат анализа",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-            }
-        }
-
-        private int GetPositionFromLineAndColumn(int line, int column)
-        {
-            string text = textBoxEditor.Text;
-            int currentLine = 1;
-            int position = 0;
-
-            while (position < text.Length && currentLine < line)
-            {
-                if (text[position] == '\n')
-                {
-                    currentLine++;
-                }
-                position++;
-            }
-
-            if (currentLine == line)
-            {
-                return position + column - 1;
-            }
-
-            return -1; // Строка не найдена
+            // Восстанавливаем выделение
+            textBoxEditor.Select(start, length);
+            textBoxEditor.SelectionBackColor = backColor;
         }
 
         private void InitializeRunButton()
@@ -450,13 +307,13 @@ namespace WindowsFormsApp2
             Button btnRun = this.Controls.OfType<Button>().FirstOrDefault(b => b.Text == "Пуск");
             if (btnRun != null)
             {
-                btnRun.Click += (s, e) => RunAnalysis();
+                btnRun.Click += (s, e) => PerformSearch();
             }
 
-            ToolStripMenuItem runMenuItem = this.GetMenuItem("runToolStripMenuItem");
+            ToolStripMenuItem runMenuItem = GetMenuItem("runToolStripMenuItem");
             if (runMenuItem != null)
             {
-                runMenuItem.Click += (s, e) => RunAnalysis();
+                runMenuItem.Click += (s, e) => PerformSearch();
             }
         }
 
@@ -500,6 +357,15 @@ namespace WindowsFormsApp2
             base.OnFormClosing(e);
         }
 
+        protected override void OnResize(EventArgs e)
+        {
+            base.OnResize(e);
+            if (splitContainer1 != null)
+            {
+                splitContainer1.Height = this.ClientSize.Height - 300;
+            }
+        }
+
         private void InitializeEditMenu()
         {
             отменитьToolStripMenuItem.Click += (s, e) => Undo();
@@ -528,7 +394,6 @@ namespace WindowsFormsApp2
             textBoxEditor.MouseUp += (s, e) => UpdateMenuState();
 
             splitContainer1.Panel1.Padding = new Padding(47);
-
             splitContainer1.Dock = DockStyle.Fill;
             splitContainer1.Orientation = Orientation.Horizontal;
             splitContainer1.SplitterWidth = 5;
@@ -537,16 +402,16 @@ namespace WindowsFormsApp2
             textBoxEditor.Dock = DockStyle.Fill;
             textBoxEditor.Multiline = true;
             textBoxEditor.ScrollBars = RichTextBoxScrollBars.Both;
+            textBoxEditor.Font = new Font("Consolas", 12);
 
-            textBoxResults.Dock = DockStyle.Fill;
-            textBoxResults.Multiline = true;
-            textBoxResults.ScrollBars = RichTextBoxScrollBars.Both;
-            textBoxResults.ReadOnly = true;
-            textBoxResults.BackColor = Color.FromArgb(240, 240, 240);
+            //textBoxResults.Dock = DockStyle.Fill;
+            //textBoxResults.Multiline = true;
+            //textBoxResults.ScrollBars = RichTextBoxScrollBars.Both;
+            //textBoxResults.ReadOnly = true;
+            //textBoxResults.BackColor = Color.FromArgb(240, 240, 240);
 
             splitContainer1.Panel1.Controls.Add(textBoxEditor);
-            splitContainer1.Panel2.Controls.Add(textBoxResults);
-
+            //splitContainer1.Panel2.Controls.Add(textBoxResults);
             splitContainer1.Panel1MinSize = 200;
             splitContainer1.Panel2MinSize = 200;
         }
@@ -559,7 +424,6 @@ namespace WindowsFormsApp2
             {
                 undoStack.Push(previousText);
                 previousText = textBoxEditor.Text;
-
                 redoStack.Clear();
             }
 
@@ -603,7 +467,6 @@ namespace WindowsFormsApp2
             if (!string.IsNullOrEmpty(textBoxEditor.SelectedText))
             {
                 SaveStateBeforeAction();
-
                 Clipboard.SetText(textBoxEditor.SelectedText);
                 int start = textBoxEditor.SelectionStart;
                 textBoxEditor.Text = textBoxEditor.Text.Remove(start, textBoxEditor.SelectionLength);
@@ -624,7 +487,6 @@ namespace WindowsFormsApp2
             if (Clipboard.ContainsText())
             {
                 SaveStateBeforeAction();
-
                 string textToPaste = Clipboard.GetText();
                 int start = textBoxEditor.SelectionStart;
 
@@ -643,7 +505,6 @@ namespace WindowsFormsApp2
             if (!string.IsNullOrEmpty(textBoxEditor.SelectedText))
             {
                 SaveStateBeforeAction();
-
                 int start = textBoxEditor.SelectionStart;
                 textBoxEditor.Text = textBoxEditor.Text.Remove(start, textBoxEditor.SelectionLength);
                 textBoxEditor.SelectionStart = start;
@@ -668,7 +529,6 @@ namespace WindowsFormsApp2
         private void UpdateMenuState()
         {
             отменитьToolStripMenuItem.Enabled = undoStack.Count > 0;
-
             повторитьToolStripMenuItem.Enabled = redoStack.Count > 0;
 
             bool hasSelection = !string.IsNullOrEmpty(textBoxEditor.SelectedText);
@@ -677,48 +537,26 @@ namespace WindowsFormsApp2
             удалитьToolStripMenuItem.Enabled = hasSelection;
 
             вставитьToolStripMenuItem.Enabled = Clipboard.ContainsText();
-
             выделитьВсеToolStripMenuItem.Enabled = !string.IsNullOrEmpty(textBoxEditor.Text);
         }
 
         private void оПрограммеToolStripMenuItem_Click(object sender, EventArgs e)
         {
             string htmlFilePath = Application.StartupPath + "\\Info\\AboutProgram.html";
-
             System.Diagnostics.Process.Start(htmlFilePath);
         }
 
         private void вызовСправкиToolStripMenuItem_Click(object sender, EventArgs e)
         {
             string htmlFilePath = Application.StartupPath + "\\Info\\UserHelp.html";
-
             System.Diagnostics.Process.Start(htmlFilePath);
         }
 
-        private void left_Click(object sender, EventArgs e)
-        {
-            Undo();
-        }
-
-        private void right_Click(object sender, EventArgs e)
-        {
-            Redo();
-        }
-
-        private void copy_Click(object sender, EventArgs e)
-        {
-            Copy();
-        }
-
-        private void scissors_Click(object sender, EventArgs e)
-        {
-            Cut();
-        }
-
-        private void insert_Click(object sender, EventArgs e)
-        {
-            Paste();
-        }
+        private void left_Click(object sender, EventArgs e) => Undo();
+        private void right_Click(object sender, EventArgs e) => Redo();
+        private void copy_Click(object sender, EventArgs e) => Copy();
+        private void scissors_Click(object sender, EventArgs e) => Cut();
+        private void insert_Click(object sender, EventArgs e) => Paste();
 
         private void выходToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -759,15 +597,9 @@ namespace WindowsFormsApp2
 
                 if (result == DialogResult.Yes)
                 {
-                    if (!SaveFile())
-                    {
-                        return;
-                    }
+                    if (!SaveFile()) return;
                 }
-                else if (result == DialogResult.Cancel)
-                {
-                    return;
-                }
+                else if (result == DialogResult.Cancel) return;
             }
 
             textBoxEditor.Clear();
@@ -794,20 +626,15 @@ namespace WindowsFormsApp2
 
                 if (result == DialogResult.Yes)
                 {
-                    if (!SaveFile())
-                    {
-                        return;
-                    }
+                    if (!SaveFile()) return;
                 }
-                else if (result == DialogResult.Cancel)
-                {
-                    return;
-                }
+                else if (result == DialogResult.Cancel) return;
             }
 
             using (OpenFileDialog openFileDialog = new OpenFileDialog())
             {
-                openFileDialog.Filter = "Текстовые файлы (*.txt)|*.txt|Файлы исходного кода (*.cs;*.cpp;*.java)|*.cs;*.cpp;*.java|Все файлы (*.*)|*.*"; openFileDialog.FilterIndex = 1;
+                openFileDialog.Filter = "Текстовые файлы (*.txt)|*.txt|Файлы исходного кода (*.cs;*.cpp;*.java)|*.cs;*.cpp;*.java|Все файлы (*.*)|*.*";
+                openFileDialog.FilterIndex = 1;
                 openFileDialog.RestoreDirectory = true;
                 openFileDialog.Title = "Открыть файл";
 
@@ -816,9 +643,7 @@ namespace WindowsFormsApp2
                     try
                     {
                         string fileContent = System.IO.File.ReadAllText(openFileDialog.FileName, Encoding.UTF8);
-
                         textBoxEditor.Text = fileContent;
-
                         currentFilePath = openFileDialog.FileName;
                         isTextModified = false;
                         lastSavedText = fileContent;
@@ -834,9 +659,7 @@ namespace WindowsFormsApp2
                     catch (Exception ex)
                     {
                         MessageBox.Show($"Ошибка при открытии файла:\n{ex.Message}",
-                            "Ошибка",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Error);
+                            "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
             }
@@ -844,7 +667,6 @@ namespace WindowsFormsApp2
 
         private bool SaveFile()
         {
-
             if (string.IsNullOrEmpty(currentFilePath))
             {
                 return SaveFileAs();
@@ -872,15 +694,14 @@ namespace WindowsFormsApp2
                     return SaveToFile(saveFileDialog.FileName);
                 }
             }
-
             return false;
         }
+
         private bool SaveToFile(string filePath)
         {
             try
             {
                 string textToSave = textBoxEditor.Text;
-
                 System.IO.File.WriteAllText(filePath, textToSave, Encoding.UTF8);
 
                 currentFilePath = filePath;
@@ -893,12 +714,11 @@ namespace WindowsFormsApp2
             catch (Exception ex)
             {
                 MessageBox.Show($"Ошибка при сохранении файла:\n{ex.Message}",
-                    "Ошибка",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
+                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
         }
+
         private void CheckForModifications()
         {
             isTextModified = (textBoxEditor.Text != lastSavedText);
@@ -912,8 +732,7 @@ namespace WindowsFormsApp2
                 : System.IO.Path.GetFileName(currentFilePath);
 
             string modifiedIndicator = isTextModified ? " *" : "";
-
-            this.Text = $"{fileName}{modifiedIndicator} - Компиляторный Редактор";
+            this.Text = $"{fileName}{modifiedIndicator} - Поиск подстрок";
         }
 
         private bool CheckUnsavedChanges()
@@ -942,35 +761,11 @@ namespace WindowsFormsApp2
             return true;
         }
 
-        private void folder_Click(object sender, EventArgs e)
-        {
-            OpenFile();
-        }
-
-        private void save_Click(object sender, EventArgs e)
-        {
-            SaveFile();
-            //SaveFileAs();
-        }
-
-        private void file_Click(object sender, EventArgs e)
-        {
-            CreateNewFile();
-        }
-
-        private void runButton_Click(object sender, EventArgs e)
-        {
-            RunAnalysis();
-        }
-
-        private void questionButton_Click(object sender, EventArgs e)
-        {
-            вызовСправкиToolStripMenuItem_Click(sender, e);
-        }
-
-        private void infoButton_Click(object sender, EventArgs e)
-        {
-            оПрограммеToolStripMenuItem_Click(sender, e);
-        }
+        private void folder_Click(object sender, EventArgs e) => OpenFile();
+        private void save_Click(object sender, EventArgs e) => SaveFile();
+        private void file_Click(object sender, EventArgs e) => CreateNewFile();
+        private void runButton_Click(object sender, EventArgs e) => PerformSearch();
+        private void questionButton_Click(object sender, EventArgs e) => вызовСправкиToolStripMenuItem_Click(sender, e);
+        private void infoButton_Click(object sender, EventArgs e) => оПрограммеToolStripMenuItem_Click(sender, e);
     }
 }

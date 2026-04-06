@@ -1,453 +1,476 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace WindowsFormsApp2
 {
+    /// <summary>
+    /// Класс для поиска подстрок по заданным форматам
+    /// </summary>
     public class LexicalAnalyzer
     {
-        private readonly HashSet<char> _letters = new HashSet<char>();
-        private readonly HashSet<char> _digits = new HashSet<char>();
-        private readonly HashSet<char> _operators = new HashSet<char>();
-        private readonly HashSet<char> _separators = new HashSet<char>();
-        private readonly HashSet<string> _keywords = new HashSet<string>();
+        // Регулярные выражения для различных типов подстрок
+        private readonly Dictionary<SearchPattern, Regex> _patterns;
 
-        private enum State
+        // Автомат для поиска username
+        private readonly UsernameAutomaton _usernameAutomaton;
+
+        public enum SearchPattern
         {
-            Start,          // Начальное состояние
-            InIdentifier,    // В идентификаторе
-            InInteger,       // В целом числе
-            InFloat,         // В вещественном числе
-            InOperator,      // В операторе
-            InString,        // В строковом литерале
-            InLineComment,   // В однострочном комментарии
-            InBlockComment,  // В многострочном комментарии
-            InError,         // В ошибочном состоянии
-            Done             // Конец обработки
+            OGRN,           // ОГРН юридического лица
+            Username,       // Имя пользователя
+            ComplexNumber   // Комплексные числа
         }
 
         public LexicalAnalyzer()
         {
-            InitializeSymbolSets();
-        }
-
-       
-        private void InitializeSymbolSets()
-        {
-            for (char c = 'a'; c <= 'z'; c++) _letters.Add(c);
-            for (char c = 'A'; c <= 'Z'; c++) _letters.Add(c);
-            for (char c = 'а'; c <= 'я'; c++) _letters.Add(c);
-            for (char c = 'А'; c <= 'Я'; c++) _letters.Add(c);
-            _letters.Add('_');
-
-            for (char c = '0'; c <= '9'; c++) _digits.Add(c);
-
-            string operators = "+-*/%=!&|<>";
-            foreach (char c in operators) _operators.Add(c);
-
-            string separators = "(){}[];,.:";
-            foreach (char c in separators) _separators.Add(c);
-
-            string[] keywords = {
-                "int", "float", "double", "char", "string", "bool",
-                "if", "else", "for", "while", "do", "switch", "case",
-                "break", "continue", "return", "void", "class", "struct",
-                "public", "private", "protected", "static", "const",
-                "true", "false", "null", "this", "base", "new"
+            _patterns = new Dictionary<SearchPattern, Regex>
+            {
+                // ОГРН: 2 цифры (первая 1, вторая 5), затем 11 цифр
+                { SearchPattern.OGRN, new Regex(@"\b[15][0-9]{11}\b", RegexOptions.Compiled) },
+                
+                // Комплексные числа: различные форматы (действительная и мнимая части)
+                { SearchPattern.ComplexNumber, new Regex(@"^[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?(?:\s*[+-]\s*[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?i)?$|^[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?i$", RegexOptions.Compiled | RegexOptions.IgnoreCase) }
             };
-            foreach (string kw in keywords) _keywords.Add(kw);
+
+            // Инициализация автомата для username
+            _usernameAutomaton = new UsernameAutomaton();
         }
 
-       
-        public List<Token> Analyze(string text)
+        /// <summary>
+        /// Поиск подстрок в тексте по заданному шаблону
+        /// </summary>
+        /// <param name="text">Исходный текст</param>
+        /// <param name="pattern">Тип искомых подстрок</param>
+        /// <returns>Список найденных подстрок с информацией о позициях</returns>
+        public List<SearchMatch> FindMatches(string text, SearchPattern pattern)
         {
-            var tokens = new List<Token>();
+            var matches = new List<SearchMatch>();
+
             if (string.IsNullOrEmpty(text))
-                return tokens;
+                return matches;
 
-            State state = State.Start;
-            var currentToken = new StringBuilder();
+            switch (pattern)
+            {
+                case SearchPattern.Username:
+                    return FindUsernameMatches(text);
+
+                case SearchPattern.OGRN:
+                case SearchPattern.ComplexNumber:
+                    if (!_patterns.ContainsKey(pattern))
+                        return matches;
+
+                    var regex = _patterns[pattern];
+                    var regexMatches = regex.Matches(text);
+
+                    foreach (Match match in regexMatches)
+                    {
+                        var position = GetLineAndColumn(text, match.Index);
+
+                        matches.Add(new SearchMatch
+                        {
+                            Value = match.Value,
+                            Line = position.Line,
+                            Column = position.Column,
+                            StartIndex = match.Index,
+                            Length = match.Length
+                        });
+                    }
+                    return matches;
+
+                default:
+                    return matches;
+            }
+        }
+
+        /// <summary>
+        /// Поиск username с использованием конечного автомата
+        /// </summary>
+        private List<SearchMatch> FindUsernameMatches(string text)
+        {
+            var matches = new List<SearchMatch>();
+            var automatonMatches = _usernameAutomaton.FindAll(text);
+
+            foreach (var autoMatch in automatonMatches)
+            {
+                string value = autoMatch.GetValue(text);
+                var position = GetLineAndColumn(text, autoMatch.StartIndex);
+
+                // Проверка границ слова (username должен быть отдельным словом)
+                if (IsWordBoundary(text, autoMatch.StartIndex - 1) &&
+                    IsWordBoundary(text, autoMatch.EndIndex + 1))
+                {
+                    matches.Add(new SearchMatch
+                    {
+                        Value = value,
+                        Line = position.Line,
+                        Column = position.Column,
+                        StartIndex = autoMatch.StartIndex,
+                        Length = autoMatch.Length
+                    });
+                }
+            }
+
+            return matches;
+        }
+
+        /// <summary>
+        /// Проверка границы слова
+        /// </summary>
+        private bool IsWordBoundary(string text, int index)
+        {
+            if (index < 0 || index >= text.Length)
+                return true;
+
+            char c = text[index];
+            return !(char.IsLetterOrDigit(c));
+        }
+
+        /// <summary>
+        /// Поиск всех типов подстрок (для отладки)
+        /// </summary>
+        public Dictionary<SearchPattern, List<SearchMatch>> FindAllMatches(string text)
+        {
+            var results = new Dictionary<SearchPattern, List<SearchMatch>>();
+
+            foreach (SearchPattern pattern in Enum.GetValues(typeof(SearchPattern)))
+            {
+                results[pattern] = FindMatches(text, pattern);
+            }
+
+            return results;
+        }
+
+        /// <summary>
+        /// Получить позицию (строка, колонка) по индексу в тексте
+        /// </summary>
+        private (int Line, int Column) GetLineAndColumn(string text, int index)
+        {
             int line = 1;
-            int pos = 0;
-            int tokenStartLine = 1;
-            int tokenStartPos = 0;
-            int length = text.Length;
+            int column = 1;
 
-            while (pos < length)
+            for (int i = 0; i < index && i < text.Length; i++)
             {
-                char c = text[pos];
-                char nextChar = pos < length - 1 ? text[pos + 1] : '\0';
-
-                switch (state)
+                if (text[i] == '\n')
                 {
-                    case State.Start:
-                        if (char.IsWhiteSpace(c))
-                        {
-                            if (c == '\n') line++;
-                            pos++;
-                            continue;
-                        }
-
-                        tokenStartLine = line;
-                        tokenStartPos = pos + 1;
-                        currentToken.Clear();
-
-                        if (_letters.Contains(c))
-                        {
-                            state = State.InIdentifier;
-                            currentToken.Append(c);
-                        }
-                        else if (_digits.Contains(c))
-                        {
-                            state = State.InInteger;
-                            currentToken.Append(c);
-                        }
-                        else if (_operators.Contains(c))
-                        {
-                            if ((c == '=' && nextChar == '=') ||
-                                (c == '!' && nextChar == '=') ||
-                                (c == '<' && nextChar == '=') ||
-                                (c == '>' && nextChar == '=') ||
-                                (c == '&' && nextChar == '&') ||
-                                (c == '|' && nextChar == '|'))
-                            {
-                                currentToken.Append(c);
-                                currentToken.Append(nextChar);
-                                tokens.Add(CreateToken(TokenType.Operator, currentToken.ToString(),
-                                    tokenStartLine, tokenStartPos, pos + 2));
-                                pos += 2;
-                                state = State.Start;
-                                continue;
-                            }
-                            else
-                            {
-                                state = State.InOperator;
-                                currentToken.Append(c);
-                            }
-                        }
-                        else if (_separators.Contains(c))
-                        {
-                            currentToken.Append(c);
-                            tokens.Add(CreateToken(TokenType.Separator, c.ToString(),
-                                tokenStartLine, tokenStartPos, pos + 1));
-                            pos++;
-                            continue;
-                        }
-                        else if (c == '"')
-                        {
-                            state = State.InString;
-                            currentToken.Append(c);
-                        }
-                        else if (c == '/')
-                        {
-                            if (nextChar == '/')
-                            {
-                                state = State.InLineComment;
-                                currentToken.Append(c);
-                                currentToken.Append(nextChar);
-                                pos += 2;
-                                continue;
-                            }
-                            else if (nextChar == '*')
-                            {
-                                state = State.InBlockComment;
-                                currentToken.Append(c);
-                                currentToken.Append(nextChar);
-                                pos += 2;
-                                continue;
-                            }
-                            else
-                            {
-                                state = State.InOperator;
-                                currentToken.Append(c);
-                            }
-                        }
-                        else
-                        {
-                            tokens.Add(CreateErrorToken($"Недопустимый символ '{c}'",
-                                line, pos + 1, pos + 1));
-                        }
-                        pos++;
-                        break;
-
-                    case State.InIdentifier:
-                        if (_letters.Contains(c) || _digits.Contains(c))
-                        {
-                            currentToken.Append(c);
-                            pos++;
-                        }
-                        else
-                        {
-                            string tokenValue = currentToken.ToString();
-                            TokenType type = _keywords.Contains(tokenValue)
-                                ? TokenType.Keyword
-                                : TokenType.Identifier;
-
-                            tokens.Add(CreateToken(type, tokenValue,
-                                tokenStartLine, tokenStartPos, pos));
-                            state = State.Start;
-                        }
-                        break;
-
-                    case State.InInteger:
-                        if (_digits.Contains(c))
-                        {
-                            currentToken.Append(c);
-                            pos++;
-                        }
-                        else if (c == '.')
-                        {
-                            state = State.InFloat;
-                            currentToken.Append(c);
-                            pos++;
-                        }
-                        else
-                        {
-                            tokens.Add(CreateToken(TokenType.Integer, currentToken.ToString(),
-                                tokenStartLine, tokenStartPos, pos));
-                            state = State.Start;
-                        }
-                        break;
-
-                    case State.InFloat:
-                        if (_digits.Contains(c))
-                        {
-                            currentToken.Append(c);
-                            pos++;
-                        }
-                        else
-                        {
-                            tokens.Add(CreateToken(TokenType.Float, currentToken.ToString(),
-                                tokenStartLine, tokenStartPos, pos));
-                            state = State.Start;
-                        }
-                        break;
-
-                    case State.InOperator:
-                        if (_operators.Contains(c))
-                        {
-                            currentToken.Append(c);
-                            pos++;
-                        }
-                        else
-                        {
-                            tokens.Add(CreateToken(TokenType.Operator, currentToken.ToString(),
-                                tokenStartLine, tokenStartPos, pos));
-                            state = State.Start;
-                        }
-                        break;
-
-                    case State.InString:
-                        currentToken.Append(c);
-
-                        if (c == '"' && currentToken.Length > 1) 
-                        {
-                            tokens.Add(CreateToken(TokenType.StringLiteral, currentToken.ToString(),
-                                tokenStartLine, tokenStartPos, pos + 1));
-                            state = State.Start;
-                        }
-                        else if (c == '\n') 
-                        {
-                            tokens.Add(CreateErrorToken("Незакрытая строка",
-                                tokenStartLine, tokenStartPos, pos));
-                            state = State.Start;
-                        }
-                        pos++;
-                        break;
-
-                    case State.InLineComment:
-                        if (c == '\n')
-                        {
-                            tokens.Add(CreateToken(TokenType.Comment, currentToken.ToString(),
-                                tokenStartLine, tokenStartPos, pos));
-                            state = State.Start;
-                        }
-                        else
-                        {
-                            currentToken.Append(c);
-                            pos++;
-                        }
-                        break;
-
-                    case State.InBlockComment:
-                        currentToken.Append(c);
-
-                        if (c == '*' && nextChar == '/')
-                        {
-                            currentToken.Append(nextChar);
-                            tokens.Add(CreateToken(TokenType.Comment, currentToken.ToString(),
-                                tokenStartLine, tokenStartPos, pos + 2));
-                            pos += 2;
-                            state = State.Start;
-                        }
-                        else
-                        {
-                            if (c == '\n') line++;
-                            pos++;
-                        }
-                        break;
-
-                    case State.InError:
-                        // Восстанавливаемся после ошибки
-                        if (char.IsWhiteSpace(c) || _separators.Contains(c))
-                        {
-                            state = State.Start;
-                        }
-                        else
-                        {
-                            pos++;
-                        }
-                        break;
+                    line++;
+                    column = 1;
+                }
+                else
+                {
+                    column++;
                 }
             }
 
-            // Обработка незавершенных токенов в конце файла
-            if (state != State.Start)
-            {
-                switch (state)
-                {
-                    case State.InIdentifier:
-                        tokens.Add(CreateToken(TokenType.Identifier, currentToken.ToString(),
-                            tokenStartLine, tokenStartPos, length));
-                        break;
-                    case State.InInteger:
-                        tokens.Add(CreateToken(TokenType.Integer, currentToken.ToString(),
-                            tokenStartLine, tokenStartPos, length));
-                        break;
-                    case State.InFloat:
-                        tokens.Add(CreateToken(TokenType.Float, currentToken.ToString(),
-                            tokenStartLine, tokenStartPos, length));
-                        break;
-                    case State.InOperator:
-                        tokens.Add(CreateToken(TokenType.Operator, currentToken.ToString(),
-                            tokenStartLine, tokenStartPos, length));
-                        break;
-                    case State.InString:
-                    case State.InBlockComment:
-                        tokens.Add(CreateErrorToken("Незавершенная конструкция",
-                            tokenStartLine, tokenStartPos, length));
-                        break;
-                }
-            }
-
-            return tokens;
-        }
-
-        public class AnalysisResult
-        {
-            public List<Token> Tokens { get; set; } = new List<Token>();
-            public bool HasErrors => Tokens.Any(t => t.IsError);
-            public List<Token> Errors => Tokens.Where(t => t.IsError).ToList();
+            return (line, column);
         }
 
         /// <summary>
-        /// Создание токена
+        /// Получить название шаблона поиска
         /// </summary>
-        private Token CreateToken(TokenType type, string value, int line, int start, int end)
+        public static string GetPatternName(SearchPattern pattern)
         {
-            return new Token
+            switch (pattern)
             {
-                Type = type,
-                Value = value,
-                Line = line,
-                StartPosition = start,
-                EndPosition = end,
-                IsError = false
-            };
+                case SearchPattern.OGRN: return "ОГРН юридического лица";
+                case SearchPattern.Username: return "Имя пользователя (автомат)";
+                case SearchPattern.ComplexNumber: return "Комплексные числа";
+                default: return pattern.ToString();
+            }
         }
 
         /// <summary>
-        /// Создание токена ошибки
+        /// Получить описание формата
         /// </summary>
-        private Token CreateErrorToken(string message, int line, int start, int end)
+        public static string GetPatternDescription(SearchPattern pattern)
         {
-            return new Token
+            switch (pattern)
             {
-                Type = TokenType.Error,
-                Value = message,
-                Line = line,
-                StartPosition = start,
-                EndPosition = end,
-                IsError = true,
-                ErrorMessage = message
-            };
-        }
-    }
-
-    public enum TokenType
-    {
-        [Description("Ключевое слово")]
-        Keyword = 1,
-
-        [Description("Идентификатор")]
-        Identifier = 2,
-
-        [Description("Целое число")]
-        Integer = 3,
-
-        [Description("Вещественное число")]
-        Float = 4,
-
-        [Description("Оператор")]
-        Operator = 5,
-
-        [Description("Разделитель")]
-        Separator = 6,
-
-        [Description("Строковый литерал")]
-        StringLiteral = 7,
-
-        [Description("Комментарий")]
-        Comment = 8,
-
-        [Description("Ошибка")]
-        Error = 99
-    }
-
-    public static class EnumExtensions
-    {
-        public static string GetDescription(this Enum value)
-        {
-            var field = value.GetType().GetField(value.ToString());
-            var attribute = (DescriptionAttribute)Attribute.GetCustomAttribute(field, typeof(DescriptionAttribute));
-            return attribute == null ? value.ToString() : attribute.Description;
-        }
-    }
-
-    public class Token
-    {
-        public TokenType Type { get; set; }
-        public string Value { get; set; }
-        public int Line { get; set; }
-        public int StartPosition { get; set; }
-        public int EndPosition { get; set; }
-        public bool IsError { get; set; }
-        public string ErrorMessage { get; set; }
-
-        public string GetFormattedString()
-        {
-            string typeCode = ((int)Type).ToString().PadRight(8);
-            string typeDesc = Type.GetDescription().PadRight(20);
-            string value = (Value.Length > 30) ? Value.Substring(0, 27) + "..." : Value;
-            value = value.PadRight(25);
-            string location = $"стр.{Line} ({StartPosition}-{EndPosition})";
-
-            if (IsError)
-            {
-                return $"ОШИБКА: {ErrorMessage} в {location}";
+                case SearchPattern.OGRN:
+                    return "Формат: 1 или 5 в начале, затем 11 цифр (всего 13 цифр)";
+                case SearchPattern.Username:
+                    return "Формат (автомат): буква в начале, затем буквы и цифры, длина от 2 до 30 символов";
+                case SearchPattern.ComplexNumber:
+                    return "Формат: действительная и мнимая части (например: 3+4i, -2.5i, 1e-3+2.5i)";
+                default:
+                    return pattern.ToString();
             }
-
-            return $"{typeCode} {typeDesc} {value} {location}";
         }
+    }
+
+    /// <summary>
+    /// Класс для хранения результатов поиска
+    /// </summary>
+    public class SearchMatch
+    {
+        public string Value { get; set; }           // Найденная подстрока
+        public int Line { get; set; }               // Номер строки
+        public int Column { get; set; }             // Номер символа в строке
+        public int StartIndex { get; set; }         // Индекс начала в тексте
+        public int Length { get; set; }             // Длина подстроки
 
         public override string ToString()
         {
-            return GetFormattedString();
+            return $"{Value} (строка {Line}, позиция {Column}, длина {Length})";
         }
     }
 
+    public class UsernameAutomaton
+    {
+        // Состояния автомата
+        private enum State
+        {
+            Start,      // Начальное состояние
+            FirstChar,  // Первый символ (должен быть буквой)
+            Body,       // Тело username (буквы и цифры)
+            End,        // Конечное состояние (успешное завершение)
+            Error       // Ошибочное состояние
+        }
 
+        private State _currentState;
+        private int _startIndex;
+        private int _currentLength;
+        private List<UsernameMatch> _matches;
+
+        // Параметры username
+        private const int MinLength = 2;
+        private const int MaxLength = 30;
+
+        /// <summary>
+        /// Поиск всех username в тексте
+        /// </summary>
+        /// <param name="text">Исходный текст</param>
+        /// <returns>Список найденных username с позициями</returns>
+        public List<UsernameMatch> FindAll(string text)
+        {
+            _matches = new List<UsernameMatch>();
+
+            if (string.IsNullOrEmpty(text))
+                return _matches;
+
+            ResetAutomaton();
+
+            for (int i = 0; i <= text.Length; i++)
+            {
+                char currentChar = i < text.Length ? text[i] : '\0';
+                ProcessChar(currentChar, i);
+            }
+
+            return _matches;
+        }
+
+        /// <summary>
+        /// Сброс автомата в начальное состояние
+        /// </summary>
+        private void ResetAutomaton()
+        {
+            _currentState = State.Start;
+            _startIndex = -1;
+            _currentLength = 0;
+        }
+
+        /// <summary>
+        /// Обработка символа автоматом
+        /// </summary>
+        private void ProcessChar(char c, int position)
+        {
+            switch (_currentState)
+            {
+                case State.Start:
+                    ProcessInStart(c, position);
+                    break;
+
+                case State.FirstChar:
+                    ProcessInFirstChar(c, position);
+                    break;
+
+                case State.Body:
+                    ProcessInBody(c, position);
+                    break;
+
+                case State.End:
+                    ProcessInEnd(c, position);
+                    break;
+
+                case State.Error:
+                    ProcessInError(c, position);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Обработка в начальном состоянии
+        /// </summary>
+        private void ProcessInStart(char c, int position)
+        {
+            if (IsLetter(c))
+            {
+                // Начало username - первый символ буква
+                _currentState = State.FirstChar;
+                _startIndex = position;
+                _currentLength = 1;
+            }
+            // Иначе остаемся в Start
+        }
+
+        /// <summary>
+        /// Обработка в состоянии первого символа
+        /// </summary>
+        private void ProcessInFirstChar(char c, int position)
+        {
+            if (IsLetterOrDigit(c))
+            {
+                // Продолжаем username
+                _currentState = State.Body;
+                _currentLength++;
+
+                // Проверяем, не достигли ли максимальной длины
+                if (_currentLength == MaxLength)
+                {
+                    // Если следующий символ не буква/цифра, то это валидный username
+                    if (position + 1 < position) // Проверка будет в следующем символе
+                    {
+                        // Запоминаем, что достигли максимума
+                    }
+                }
+            }
+            else
+            {
+                // Username из одного символа - не подходит (мин. длина 2)
+                // Завершаем с ошибкой
+                _currentState = State.Error;
+                ProcessInError(c, position);
+            }
+        }
+
+        /// <summary>
+        /// Обработка в состоянии тела username
+        /// </summary>
+        private void ProcessInBody(char c, int position)
+        {
+            if (IsLetterOrDigit(c))
+            {
+                // Продолжаем username
+                _currentLength++;
+
+                // Проверка на превышение максимальной длины
+                if (_currentLength > MaxLength)
+                {
+                    // Достигнут максимум - сохраняем предыдущий валидный username
+                    SaveMatch(position - 1);
+                    _currentState = State.Error;
+                    ProcessInError(c, position);
+                }
+            }
+            else
+            {
+                // Конец username - проверяем минимальную длину
+                if (_currentLength >= MinLength && _currentLength <= MaxLength)
+                {
+                    SaveMatch(position - 1);
+                    _currentState = State.End;
+                    ProcessInEnd(c, position);
+                }
+                else
+                {
+                    _currentState = State.Error;
+                    ProcessInError(c, position);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Обработка в конечном состоянии
+        /// </summary>
+        private void ProcessInEnd(char c, int position)
+        {
+            if (IsLetter(c))
+            {
+                // Начинаем новый username
+                ResetAutomaton();
+                ProcessInStart(c, position);
+            }
+            else if (IsLetterOrDigit(c))
+            {
+                // Не может быть, т.к. после валидного username должен быть разделитель
+                ResetAutomaton();
+                ProcessInStart(c, position);
+            }
+            else
+            {
+                ResetAutomaton();
+                // Проверяем, не начинается ли новый username с текущего символа
+                if (IsLetter(c))
+                {
+                    ProcessInStart(c, position);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Обработка в ошибочном состоянии
+        /// </summary>
+        private void ProcessInError(char c, int position)
+        {
+            // Сбрасываем автомат и ищем новое начало
+            ResetAutomaton();
+
+            // Проверяем, может ли текущий символ начать новый username
+            if (IsLetter(c))
+            {
+                ProcessInStart(c, position);
+            }
+        }
+
+        /// <summary>
+        /// Сохранение найденного username
+        /// </summary>
+        private void SaveMatch(int endPosition)
+        {
+            if (_startIndex >= 0 && _currentLength >= MinLength && _currentLength <= MaxLength)
+            {
+                _matches.Add(new UsernameMatch
+                {
+                    StartIndex = _startIndex,
+                    Length = _currentLength,
+                    EndIndex = endPosition
+                });
+            }
+        }
+
+        /// <summary>
+        /// Проверка, является ли символ буквой (латиница)
+        /// </summary>
+        private bool IsLetter(char c)
+        {
+            return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+        }
+
+        /// <summary>
+        /// Проверка, является ли символ буквой или цифрой
+        /// </summary>
+        private bool IsLetterOrDigit(char c)
+        {
+            return IsLetter(c) || (c >= '0' && c <= '9');
+        }
+    }
+
+    /// <summary>
+    /// Результат поиска username
+    /// </summary>
+    public class UsernameMatch
+    {
+        public int StartIndex { get; set; }
+        public int Length { get; set; }
+        public int EndIndex { get; set; }
+
+        public string GetValue(string text)
+        {
+            if (StartIndex >= 0 && Length > 0 && StartIndex + Length <= text.Length)
+            {
+                return text.Substring(StartIndex, Length);
+            }
+            return string.Empty;
+        }
+    }
 }

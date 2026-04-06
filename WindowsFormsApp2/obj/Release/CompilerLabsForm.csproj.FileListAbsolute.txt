@@ -1,0 +1,10 @@
+C:\Users\ilcat\source\repos\CompilerLabs\WindowsFormsApp2\bin\Release\CompilerApp.exe.config
+C:\Users\ilcat\source\repos\CompilerLabs\WindowsFormsApp2\bin\Release\CompilerApp.exe
+C:\Users\ilcat\source\repos\CompilerLabs\WindowsFormsApp2\bin\Release\CompilerApp.pdb
+C:\Users\ilcat\source\repos\CompilerLabs\WindowsFormsApp2\obj\Release\CompilerLabsForm.csproj.AssemblyReference.cache
+C:\Users\ilcat\source\repos\CompilerLabs\WindowsFormsApp2\obj\Release\WindowsFormsApp2.CompilerForm.resources
+C:\Users\ilcat\source\repos\CompilerLabs\WindowsFormsApp2\obj\Release\WindowsFormsApp2.Properties.Resources.resources
+C:\Users\ilcat\source\repos\CompilerLabs\WindowsFormsApp2\obj\Release\CompilerLabsForm.csproj.GenerateResource.cache
+C:\Users\ilcat\source\repos\CompilerLabs\WindowsFormsApp2\obj\Release\CompilerLabsForm.csproj.CoreCompileInputs.cache
+C:\Users\ilcat\source\repos\CompilerLabs\WindowsFormsApp2\obj\Release\CompilerApp.exe
+C:\Users\ilcat\source\repos\CompilerLabs\WindowsFormsApp2\obj\Release\CompilerApp.pdb

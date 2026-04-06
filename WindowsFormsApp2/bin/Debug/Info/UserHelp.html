@@ -1,0 +1,291 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Справка | Компиляторный Редактор</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9eef3 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            line-height: 1.5;
+            color: #1e2b3c;
+        }
+
+        .card {
+            max-width: 880px;
+            width: 100%;
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 48px;
+            box-shadow: 0 30px 60px -20px rgba(0,30,60,0.4), 0 0 0 1px rgba(255,255,255,0.5) inset;
+            padding: 40px 44px;
+            transition: all 0.2s;
+        }
+
+        /* decorative line */
+        .top-accent {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+
+        .accent-dot {
+            width: 14px;
+            height: 14px;
+            background: #2b6c9e;
+            border-radius: 40px;
+            box-shadow: 0 0 0 3px rgba(43,108,158,0.2);
+        }
+
+        .accent-line {
+            height: 3px;
+            flex: 1;
+            background: linear-gradient(90deg, #2b6c9e, #8bb9dc, transparent);
+            border-radius: 10px;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(145deg, #0b2d4b, #1f537c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+            line-height: 1.2;
+        }
+
+        .badge-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px 20px;
+            margin-bottom: 32px;
+            border-bottom: 2px dashed #b9d2e9;
+            padding-bottom: 28px;
+        }
+
+        .badge {
+            background: #e1edfb;
+            border-radius: 60px;
+            padding: 12px 26px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #0d3a5c;
+            box-shadow: 0 2px 8px rgba(0,40,70,0.1);
+            border: 1px solid rgba(255,255,255,0.6);
+            backdrop-filter: blur(4px);
+        }
+
+        .badge-version {
+            background: #1f3f5c;
+            color: white;
+            box-shadow: 0 8px 16px -6px #1f3f5c80;
+        }
+
+        .desc-block {
+            background: rgba(255,255,255,0.7);
+            border-radius: 40px;
+            padding: 28px 34px;
+            margin: 28px 0 20px;
+            border: 1px solid rgba(255,255,255,0.9);
+        }
+
+        .desc-text {
+            font-size: 1.2rem;
+            margin-bottom: 24px;
+            color: #1c3d5a;
+            font-weight: 450;
+        }
+
+        .purpose-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+            .purpose-list li {
+                display: flex;
+                align-items: center;
+                gap: 18px;
+                font-size: 1.18rem;
+                background: #ecf3fa;
+                border-radius: 60px;
+                padding: 8px 28px 8px 18px;
+                border: 1px solid white;
+            }
+
+        .list-marker {
+            width: 40px;
+            height: 40px;
+            background: #2b6c9e;
+            color: white;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            font-weight: 600;
+            box-shadow: 0 4px 10px #2b6c9e60;
+        }
+
+        .info-footer {
+            margin-top: 42px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            background: #dce8f2;
+            border-radius: 36px;
+            padding: 24px 32px;
+            border: 1px solid white;
+        }
+
+        .discipline {
+            font-size: 1.2rem;
+            font-weight: 600;
+            background: #ffffffb0;
+            padding: 8px 22px;
+            border-radius: 50px;
+            color: #003057;
+        }
+
+        .copyright {
+            font-size: 1.1rem;
+            color: #1f4665;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .copyright-symbol {
+            font-size: 2rem;
+            opacity: 0.8;
+        }
+
+        hr {
+            border: none;
+            border-top: 2px dotted #a5c0da;
+            margin: 32px 0 16px;
+        }
+
+        .version-footnote {
+            display: flex;
+            gap: 16px;
+            align-items: baseline;
+            background: #ffffffb0;
+            border-radius: 40px;
+            padding: 18px 30px;
+            margin-top: 24px;
+            color: #1d3f60;
+            border: 1px solid white;
+        }
+
+        .small-print {
+            font-size: 0.95rem;
+            color: #365e81;
+            text-align: right;
+        }
+
+        @media (max-width: 600px) {
+            .card {
+                padding: 28px 20px;
+            }
+
+            h1 {
+                font-size: 2.2rem;
+            }
+
+            .badge {
+                padding: 8px 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+
+        <div class="top-accent">
+            <span class="accent-dot"></span>
+            <span class="accent-line"></span>
+        </div>
+
+        <h1>Компиляторный Редактор</h1>
+
+        <div class="badge-wrapper">
+            <span class="badge badge-version">Версия 1.0</span>
+            <span class="badge">📘 Учебная версия</span>
+            <span class="badge">⚙️ Теория компиляторов</span>
+        </div>
+
+        <div class="desc-block">
+            <p class="desc-text">
+                <strong>«Компиляторный Редактор»</strong> — это специализированный текстовый редактор,
+                разработанный для работы с формальными языками и компиляторами.
+            </p>
+
+            <ul class="purpose-list">
+                <li>
+                    <span class="list-marker">⌨️</span>
+                    <span>Набора и редактирования исходного кода</span>
+                </li>
+                <li>
+                    <span class="list-marker">🔍</span>
+                    <span>Анализа текста языковым процессором</span>
+                </li>
+                <li>
+                    <span class="list-marker">📚</span>
+                    <span>Изучения теории формальных языков</span>
+                </li>
+            </ul>
+
+            <div style="margin-top: 32px; background: #ffffffb0; border-radius: 36px; padding: 18px 26px; font-size: 1.1rem;">
+                Программа <strong>«Компиляторный Редактор»</strong> разработана для учебных целей
+                в рамках дисциплины <span style="background:#e3efff; padding:2px 12px; border-radius:40px;">«Теория формальных языков и компиляторов»</span>.
+            </div>
+        </div>
+
+        <div class="info-footer">
+            <div class="copyright">
+                <span class="copyright-symbol">©</span>
+                <span>2025–2026  Все права защищены.</span>
+            </div>
+            <div class="discipline">
+                ТФЯиК · Курсовая работа
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="version-footnote">
+            <span style="background:#1f3f5c; color:white; padding:6px 20px; border-radius:40px; font-weight:600;">Версия 1.0</span>
+            <span>«Компиляторный Редактор» — специализированный текстовый редактор для формальных языков. </span>
+        </div>
+
+        <div class="small-print">
+            Разработано в учебных целях · для дисциплины «Теория формальных языков и компиляторов»
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; margin-top:12px;">
+            <span style="background:#b6d3f0; width:60px; height:4px; border-radius:4px;"></span>
+        </div>
+
+    </div>
+</body>
+</html>
