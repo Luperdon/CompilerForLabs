@@ -18,7 +18,6 @@ namespace WindowsFormsApp2
         private bool isTextModified = false;
         private string lastSavedText = "";
 
-        // Модуль поиска
         private LexicalAnalyzer _analyzer = new LexicalAnalyzer();
         private List<SearchMatch> _lastSearchResults = new List<SearchMatch>();
         private ComboBox cmbSearchType;
@@ -43,7 +42,6 @@ namespace WindowsFormsApp2
 
         private void InitializeSearchInterface()
         {
-            // Создаем панель для элементов управления поиском
             Panel searchPanel = new Panel
             {
                 Dock = DockStyle.Top,
@@ -68,7 +66,6 @@ namespace WindowsFormsApp2
                 Font = new Font("Segoe UI", 9)
             };
 
-            // Заполняем выпадающий список типами поиска
             cmbSearchType.Items.AddRange(new string[]
             {
                 "ОГРН юридического лица",
@@ -78,7 +75,6 @@ namespace WindowsFormsApp2
             cmbSearchType.SelectedIndex = 0;
             cmbSearchType.SelectedIndexChanged += CmbSearchType_SelectedIndexChanged;
 
-            // Описание формата
             lblDescription = new Label
             {
                 Location = new Point(85, 40),
@@ -111,7 +107,6 @@ namespace WindowsFormsApp2
             searchPanel.Controls.AddRange(new Control[] { lblSearchType, cmbSearchType, lblDescription, btnSearch, lblCount });
             this.Controls.Add(searchPanel);
 
-            // Таблица результатов
             dgvResults = new DataGridView
             {
                 Dock = DockStyle.Bottom,
@@ -140,7 +135,6 @@ namespace WindowsFormsApp2
 
             this.Controls.Add(dgvResults);
 
-            // Сдвигаем splitContainer вниз
             if (splitContainer1 != null)
             {
                 splitContainer1.Top = 80;
@@ -151,7 +145,6 @@ namespace WindowsFormsApp2
         private void CmbSearchType_SelectedIndexChanged(object sender, EventArgs e)
         {
             UpdateDescription();
-            // Очищаем предыдущие результаты при смене типа поиска
             dgvResults.Rows.Clear();
             _lastSearchResults.Clear();
             lblCount.Text = "Найдено: 0";
@@ -288,16 +281,13 @@ namespace WindowsFormsApp2
 
         private void ClearHighlighting()
         {
-            // Сохраняем текущее выделение
             int start = textBoxEditor.SelectionStart;
             int length = textBoxEditor.SelectionLength;
             Color backColor = textBoxEditor.SelectionBackColor;
 
-            // Снимаем всю подсветку
             textBoxEditor.SelectAll();
             textBoxEditor.SelectionBackColor = Color.White;
 
-            // Восстанавливаем выделение
             textBoxEditor.Select(start, length);
             textBoxEditor.SelectionBackColor = backColor;
         }

@@ -4,15 +4,10 @@ using System.Text.RegularExpressions;
 
 namespace WindowsFormsApp2
 {
-    /// <summary>
-    /// Класс для поиска подстрок по заданным форматам
-    /// </summary>
     public class LexicalAnalyzer
     {
-        // Регулярные выражения для различных типов подстрок
         private readonly Dictionary<SearchPattern, Regex> _patterns;
 
-        // Автомат для поиска username
         private readonly UsernameAutomaton _usernameAutomaton;
 
         public enum SearchPattern
@@ -26,23 +21,14 @@ namespace WindowsFormsApp2
         {
             _patterns = new Dictionary<SearchPattern, Regex>
             {
-                // ОГРН: 2 цифры (первая 1, вторая 5), затем 11 цифр
                 { SearchPattern.OGRN, new Regex(@"\b[15][0-9]{11}\b", RegexOptions.Compiled) },
                 
-                // Комплексные числа: различные форматы (действительная и мнимая части)
                 { SearchPattern.ComplexNumber, new Regex(@"^[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?(?:\s*[+-]\s*[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?i)?$|^[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?i$", RegexOptions.Compiled | RegexOptions.IgnoreCase) }
             };
 
-            // Инициализация автомата для username
             _usernameAutomaton = new UsernameAutomaton();
         }
 
-        /// <summary>
-        /// Поиск подстрок в тексте по заданному шаблону
-        /// </summary>
-        /// <param name="text">Исходный текст</param>
-        /// <param name="pattern">Тип искомых подстрок</param>
-        /// <returns>Список найденных подстрок с информацией о позициях</returns>
         public List<SearchMatch> FindMatches(string text, SearchPattern pattern)
         {
             var matches = new List<SearchMatch>();
@@ -83,9 +69,6 @@ namespace WindowsFormsApp2
             }
         }
 
-        /// <summary>
-        /// Поиск username с использованием конечного автомата
-        /// </summary>
         private List<SearchMatch> FindUsernameMatches(string text)
         {
             var matches = new List<SearchMatch>();
@@ -96,7 +79,6 @@ namespace WindowsFormsApp2
                 string value = autoMatch.GetValue(text);
                 var position = GetLineAndColumn(text, autoMatch.StartIndex);
 
-                // Проверка границ слова (username должен быть отдельным словом)
                 if (IsWordBoundary(text, autoMatch.StartIndex - 1) &&
                     IsWordBoundary(text, autoMatch.EndIndex + 1))
                 {
@@ -114,9 +96,6 @@ namespace WindowsFormsApp2
             return matches;
         }
 
-        /// <summary>
-        /// Проверка границы слова
-        /// </summary>
         private bool IsWordBoundary(string text, int index)
         {
             if (index < 0 || index >= text.Length)
@@ -126,9 +105,6 @@ namespace WindowsFormsApp2
             return !(char.IsLetterOrDigit(c));
         }
 
-        /// <summary>
-        /// Поиск всех типов подстрок (для отладки)
-        /// </summary>
         public Dictionary<SearchPattern, List<SearchMatch>> FindAllMatches(string text)
         {
             var results = new Dictionary<SearchPattern, List<SearchMatch>>();
@@ -141,9 +117,6 @@ namespace WindowsFormsApp2
             return results;
         }
 
-        /// <summary>
-        /// Получить позицию (строка, колонка) по индексу в тексте
-        /// </summary>
         private (int Line, int Column) GetLineAndColumn(string text, int index)
         {
             int line = 1;
@@ -165,9 +138,6 @@ namespace WindowsFormsApp2
             return (line, column);
         }
 
-        /// <summary>
-        /// Получить название шаблона поиска
-        /// </summary>
         public static string GetPatternName(SearchPattern pattern)
         {
             switch (pattern)
@@ -179,9 +149,6 @@ namespace WindowsFormsApp2
             }
         }
 
-        /// <summary>
-        /// Получить описание формата
-        /// </summary>
         public static string GetPatternDescription(SearchPattern pattern)
         {
             switch (pattern)
@@ -198,9 +165,6 @@ namespace WindowsFormsApp2
         }
     }
 
-    /// <summary>
-    /// Класс для хранения результатов поиска
-    /// </summary>
     public class SearchMatch
     {
         public string Value { get; set; }           // Найденная подстрока
@@ -217,7 +181,6 @@ namespace WindowsFormsApp2
 
     public class UsernameAutomaton
     {
-        // Состояния автомата
         private enum State
         {
             Start,      // Начальное состояние
@@ -232,15 +195,9 @@ namespace WindowsFormsApp2
         private int _currentLength;
         private List<UsernameMatch> _matches;
 
-        // Параметры username
         private const int MinLength = 2;
         private const int MaxLength = 30;
 
-        /// <summary>
-        /// Поиск всех username в тексте
-        /// </summary>
-        /// <param name="text">Исходный текст</param>
-        /// <returns>Список найденных username с позициями</returns>
         public List<UsernameMatch> FindAll(string text)
         {
             _matches = new List<UsernameMatch>();
@@ -259,9 +216,6 @@ namespace WindowsFormsApp2
             return _matches;
         }
 
-        /// <summary>
-        /// Сброс автомата в начальное состояние
-        /// </summary>
         private void ResetAutomaton()
         {
             _currentState = State.Start;
@@ -269,9 +223,6 @@ namespace WindowsFormsApp2
             _currentLength = 0;
         }
 
-        /// <summary>
-        /// Обработка символа автоматом
-        /// </summary>
         private void ProcessChar(char c, int position)
         {
             switch (_currentState)
@@ -298,37 +249,26 @@ namespace WindowsFormsApp2
             }
         }
 
-        /// <summary>
-        /// Обработка в начальном состоянии
-        /// </summary>
         private void ProcessInStart(char c, int position)
         {
             if (IsLetter(c))
             {
-                // Начало username - первый символ буква
                 _currentState = State.FirstChar;
                 _startIndex = position;
                 _currentLength = 1;
             }
-            // Иначе остаемся в Start
         }
 
-        /// <summary>
-        /// Обработка в состоянии первого символа
-        /// </summary>
         private void ProcessInFirstChar(char c, int position)
         {
             if (IsLetterOrDigit(c))
             {
-                // Продолжаем username
                 _currentState = State.Body;
                 _currentLength++;
 
-                // Проверяем, не достигли ли максимальной длины
                 if (_currentLength == MaxLength)
                 {
-                    // Если следующий символ не буква/цифра, то это валидный username
-                    if (position + 1 < position) // Проверка будет в следующем символе
+                    if (position + 1 < position)
                     {
                         // Запоминаем, что достигли максимума
                     }
@@ -336,27 +276,19 @@ namespace WindowsFormsApp2
             }
             else
             {
-                // Username из одного символа - не подходит (мин. длина 2)
-                // Завершаем с ошибкой
                 _currentState = State.Error;
                 ProcessInError(c, position);
             }
         }
 
-        /// <summary>
-        /// Обработка в состоянии тела username
-        /// </summary>
         private void ProcessInBody(char c, int position)
         {
             if (IsLetterOrDigit(c))
             {
-                // Продолжаем username
                 _currentLength++;
 
-                // Проверка на превышение максимальной длины
                 if (_currentLength > MaxLength)
                 {
-                    // Достигнут максимум - сохраняем предыдущий валидный username
                     SaveMatch(position - 1);
                     _currentState = State.Error;
                     ProcessInError(c, position);
@@ -364,7 +296,6 @@ namespace WindowsFormsApp2
             }
             else
             {
-                // Конец username - проверяем минимальную длину
                 if (_currentLength >= MinLength && _currentLength <= MaxLength)
                 {
                     SaveMatch(position - 1);
@@ -379,27 +310,21 @@ namespace WindowsFormsApp2
             }
         }
 
-        /// <summary>
-        /// Обработка в конечном состоянии
-        /// </summary>
         private void ProcessInEnd(char c, int position)
         {
             if (IsLetter(c))
             {
-                // Начинаем новый username
                 ResetAutomaton();
                 ProcessInStart(c, position);
             }
             else if (IsLetterOrDigit(c))
             {
-                // Не может быть, т.к. после валидного username должен быть разделитель
                 ResetAutomaton();
                 ProcessInStart(c, position);
             }
             else
             {
                 ResetAutomaton();
-                // Проверяем, не начинается ли новый username с текущего символа
                 if (IsLetter(c))
                 {
                     ProcessInStart(c, position);
@@ -407,24 +332,16 @@ namespace WindowsFormsApp2
             }
         }
 
-        /// <summary>
-        /// Обработка в ошибочном состоянии
-        /// </summary>
         private void ProcessInError(char c, int position)
         {
-            // Сбрасываем автомат и ищем новое начало
             ResetAutomaton();
 
-            // Проверяем, может ли текущий символ начать новый username
             if (IsLetter(c))
             {
                 ProcessInStart(c, position);
             }
         }
 
-        /// <summary>
-        /// Сохранение найденного username
-        /// </summary>
         private void SaveMatch(int endPosition)
         {
             if (_startIndex >= 0 && _currentLength >= MinLength && _currentLength <= MaxLength)
@@ -438,26 +355,17 @@ namespace WindowsFormsApp2
             }
         }
 
-        /// <summary>
-        /// Проверка, является ли символ буквой (латиница)
-        /// </summary>
         private bool IsLetter(char c)
         {
             return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
         }
 
-        /// <summary>
-        /// Проверка, является ли символ буквой или цифрой
-        /// </summary>
         private bool IsLetterOrDigit(char c)
         {
             return IsLetter(c) || (c >= '0' && c <= '9');
         }
     }
 
-    /// <summary>
-    /// Результат поиска username
-    /// </summary>
     public class UsernameMatch
     {
         public int StartIndex { get; set; }
