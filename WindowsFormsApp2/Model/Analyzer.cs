@@ -21,9 +21,9 @@ namespace WindowsFormsApp2
         {
             _patterns = new Dictionary<SearchPattern, Regex>
             {
-                { SearchPattern.OGRN, new Regex(@"\b[15][0-9]{11}\b", RegexOptions.Compiled) },
-                
-                { SearchPattern.ComplexNumber, new Regex(@"^[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?(?:\s*[+-]\s*[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?i)?$|^[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?i$", RegexOptions.Compiled | RegexOptions.IgnoreCase) }
+                { SearchPattern.OGRN, new Regex(@"\b[15][0-9]{11}\b", RegexOptions.Compiled | RegexOptions.IgnoreCase) },
+
+                { SearchPattern.ComplexNumber, new Regex(@"^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?(?:\s*[+-]\s*[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?i)?$|^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?i$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline) }
             };
 
             _usernameAutomaton = new UsernameAutomaton();
@@ -181,14 +181,7 @@ namespace WindowsFormsApp2
 
     public class UsernameAutomaton
     {
-        private enum State
-        {
-            Start,      // Начальное состояние
-            FirstChar,  // Первый символ (должен быть буквой)
-            Body,       // Тело username (буквы и цифры)
-            End,        // Конечное состояние (успешное завершение)
-            Error       // Ошибочное состояние
-        }
+        private enum State { Start, FirstChar, Body, End, Error }
 
         private State _currentState;
         private int _startIndex;
@@ -230,19 +223,15 @@ namespace WindowsFormsApp2
                 case State.Start:
                     ProcessInStart(c, position);
                     break;
-
                 case State.FirstChar:
                     ProcessInFirstChar(c, position);
                     break;
-
                 case State.Body:
                     ProcessInBody(c, position);
                     break;
-
                 case State.End:
                     ProcessInEnd(c, position);
                     break;
-
                 case State.Error:
                     ProcessInError(c, position);
                     break;
@@ -268,16 +257,13 @@ namespace WindowsFormsApp2
 
                 if (_currentLength == MaxLength)
                 {
-                    if (position + 1 < position)
-                    {
-                        // Запоминаем, что достигли максимума
-                    }
+                    SaveMatch(position);
+                    _currentState = State.End;
                 }
             }
             else
             {
                 _currentState = State.Error;
-                ProcessInError(c, position);
             }
         }
 
@@ -291,7 +277,6 @@ namespace WindowsFormsApp2
                 {
                     SaveMatch(position - 1);
                     _currentState = State.Error;
-                    ProcessInError(c, position);
                 }
             }
             else
@@ -312,23 +297,11 @@ namespace WindowsFormsApp2
 
         private void ProcessInEnd(char c, int position)
         {
+            ResetAutomaton();
+
             if (IsLetter(c))
             {
-                ResetAutomaton();
                 ProcessInStart(c, position);
-            }
-            else if (IsLetterOrDigit(c))
-            {
-                ResetAutomaton();
-                ProcessInStart(c, position);
-            }
-            else
-            {
-                ResetAutomaton();
-                if (IsLetter(c))
-                {
-                    ProcessInStart(c, position);
-                }
             }
         }
 
